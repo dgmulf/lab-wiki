@@ -1,0 +1,17 @@
+---
+title: Research Wiki
+---
+
+A shared notebook for hypotheses, experiments, and academic literature.
+
+## Hypotheses
+
+Record testable claims, their assumptions, and the evidence for or against them.
+
+## Experiments
+
+Document methods, observations, and reproducible results.
+
+## Literature
+
+Connect relevant papers to the questions and experiments they inform.
