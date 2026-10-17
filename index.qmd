@@ -4,6 +4,8 @@ title: Research Wiki
 
 A shared notebook for hypotheses, experiments, and academic literature.
 
+Maintained collaboratively by Danny and Lab.
+
 ## Hypotheses
 
 Record testable claims, their assumptions, and the evidence for or against them.
