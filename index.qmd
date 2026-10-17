@@ -14,6 +14,8 @@ Record testable claims, their assumptions, and the evidence for or against them.
 
 Document methods, observations, and reproducible results.
 
+Rendering smoke tests: [Python plot](python-plot.qmd) · [R plot](r-plot.qmd).
+
 ## Literature
 
 Connect relevant papers to the questions and experiments they inform.
