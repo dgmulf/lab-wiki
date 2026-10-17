@@ -25,8 +25,8 @@ git_source() {
 exec 9>/run/lock/wiki-build.lock
 flock 9
 image=$(cat /etc/wiki/renderer-image)
-if [[ ! "$image" =~ ^[^[:space:]]+@sha256:[0-9a-f]{64}$ ]]; then
-    echo 'Renderer image must be pinned by sha256 digest.' >&2
+if [[ ! "$image" =~ ^([^[:space:]]+@)?sha256:[0-9a-f]{64}$ ]]; then
+    echo 'Renderer image must be pinned by sha256 digest or local image ID.' >&2
     exit 1
 fi
 
@@ -37,7 +37,10 @@ while true; do
         exit 0
     fi
     revision=$(git_source rev-parse --verify 'refs/heads/main^{commit}')
-    if [[ -f /srv/wiki/deployed ]] && [[ "$(cat /srv/wiki/deployed)" == "$revision" ]] && [[ -f "$web_root/current/index.html" ]]; then
+    if [[ -f /srv/wiki/deployed && -f /srv/wiki/deployed-image ]] \
+        && [[ "$(cat /srv/wiki/deployed)" == "$revision" ]] \
+        && [[ "$(cat /srv/wiki/deployed-image)" == "$image" ]] \
+        && [[ -f "$web_root/current/index.html" ]]; then
         exit 0
     fi
     workspace=$(mktemp -d "$build_root/work.XXXXXXXXXX")
@@ -52,7 +55,7 @@ while true; do
         --tmpfs=/tmp:rw,nosuid,nodev,size=512m \
         --mount="type=bind,src=$workspace,dst=/work" \
         --workdir=/work/source --env=HOME=/tmp \
-        --entrypoint=quarto "$image" render . --no-execute --output-dir=../output
+        --entrypoint=quarto "$image" render . --execute --output-dir=../output
     container=
     output="$workspace/output"
     if [[ ! -d "$output" || -L "$output" || ! -f "$output/index.html" ]]; then
@@ -82,6 +85,8 @@ while true; do
     mv -Tf -- "$web_root/.current-new" "$web_root/current"
     printf '%s\n' "$revision" > /srv/wiki/.deployed-new
     mv -f -- /srv/wiki/.deployed-new /srv/wiki/deployed
+    printf '%s\n' "$image" > /srv/wiki/.deployed-image-new
+    mv -f -- /srv/wiki/.deployed-image-new /srv/wiki/deployed-image
     retained=1
     while IFS= read -r old_release; do
         [[ "$old_release" == "$release" ]] && continue

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+deployment=$(cd -- "$(dirname -- "$0")" && pwd)
+[[ $EUID == 0 ]] || { echo 'Run with sudo.' >&2; exit 1; }
+install -d -m 0755 /etc/wiki
+image_file=$(mktemp /etc/wiki/.renderer-image.XXXXXXXXXX)
+trap 'rm -f -- "$image_file"' EXIT
+docker build --tag lab-wiki-renderer:quarto-1.10.19 \
+    --iidfile "$image_file" "$deployment/renderer"
+bash "$deployment/check-renderer" "$(cat "$image_file")"
+chmod 0644 "$image_file"
+mv -f -- "$image_file" /etc/wiki/renderer-image
