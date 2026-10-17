@@ -17,7 +17,7 @@ x <- seq(-2, 2, length.out = 200)
 points <- data.frame(x = x, y = x^2)
 ggplot(points, aes(x = x, y = y)) +
   geom_line(colour = "#c2410c", linewidth = 1) +
-  labs(title = "R: parabola", x = "x", y = "x²") +
+  labs(title = "R: parabola", x = "x", y = expression(x^2)) +
   theme_minimal(base_size = 12)
 ```
 
