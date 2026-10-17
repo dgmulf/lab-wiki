@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for wiki main-branch updates
+
+[Path]
+PathExists=/srv/wiki/queue/pending
+Unit=wiki-build.service
+
+[Install]
+WantedBy=multi-user.target

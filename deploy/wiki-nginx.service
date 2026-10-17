@@ -1,0 +1,15 @@
+[Unit]
+Description=Static research wiki NGINX server
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/nginx -t -c /etc/wiki/nginx.conf
+ExecStart=/usr/sbin/nginx -c /etc/wiki/nginx.conf -g 'daemon off;'
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

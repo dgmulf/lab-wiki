@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+deployment=$(cd -- "$(dirname -- "$0")" && pwd)
+[[ $EUID == 0 ]] || { echo 'Run with sudo.' >&2; exit 1; }
+install -d -m 0755 /etc/wiki /usr/local/lib/wiki /srv/wiki /srv/wiki/build /srv/wiki/www /srv/wiki/www/releases
+install -d -o root -g exedev -m 0770 /srv/wiki/queue
+if [[ ! -d /srv/wiki/source.git ]]; then
+    install -d -o exedev -g exedev -m 0755 /srv/wiki/source.git
+    runuser -u exedev -- git init --bare --initial-branch=main /srv/wiki/source.git
+fi
+runuser -u exedev -- git --git-dir=/srv/wiki/source.git config receive.denyNonFastForwards true
+runuser -u exedev -- git --git-dir=/srv/wiki/source.git config receive.denyDeletes true
+install -m 0755 "$deployment/build" /usr/local/lib/wiki/build
+install -m 0755 "$deployment/post-receive" /srv/wiki/source.git/hooks/post-receive
+printf '%s\n' 'ghcr.io/quarto-dev/quarto@sha256:966609c3b165de4a3f259527549c6f750cbe5298a1d35aac39313a37954578ff' > /etc/wiki/renderer-image
+install -m 0644 "$deployment/nginx.conf" /etc/wiki/nginx.conf
+install -m 0644 "$deployment/wiki-build.service" "$deployment/wiki-build.path" "$deployment/wiki-build.timer" "$deployment/wiki-nginx.service" /etc/systemd/system/
+nginx -t -c /etc/wiki/nginx.conf
+systemctl daemon-reload
+systemctl enable --now wiki-build.path wiki-build.timer wiki-nginx.service
