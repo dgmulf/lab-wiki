@@ -9,9 +9,12 @@ website:
         text: Home
       - href: computational-aesthetics.qmd
         text: Computational aesthetics
+bibliography: references.bib
+link-citations: true
 format:
   html:
     theme: cosmo
     toc: true
+    citation-hover: true
 execute:
   enabled: false
