@@ -1,0 +1,120 @@
+---
+title: "Rate–distortion and prior mismatch"
+description: "An exact binary example of the extra coding cost of an inaccurate latent prior."
+jupyter: python3
+execute:
+  echo: false
+---
+
+**The idea:** learning a latent prior can lower the variational coding cost toward the rate–distortion curve without changing what an encoder retains. This example makes the prior-mismatch term in the [aesthetics model](computational-aesthetics.qmd#measuring-information) visible.
+
+## A binary example
+
+Let $X$ be a fair binary stimulus and $Z$ a binary latent. Use the latent itself as the reconstruction, with Hamming distortion $d(x,z)=\mathbf 1[x\ne z]$. An encoder $F_D$ flips the input with probability $D$, so its expected distortion is $D$. For $0\le D\le 1/2$, these channels attain the rate–distortion curve:
+
+$$
+\mathcal R(D)=1-h_2(D),\qquad h_2(D)=-D\log_2D-(1-D)\log_2(1-D).
+$$
+
+Here $0\log_2 0=0$. We use $\mathcal R(D)$ for the rate–distortion function to distinguish it from the learned prior $R_\theta$.
+
+The true latent marginal is $q_{F_D}(Z=1)=1/2$ for every encoder in this family. Write the prior as $R_r(Z=1)=r$. The variational rate identity [@alemi2018] gives:
+
+$$
+\mathcal C(F_D,r)=\mathcal R(D)
++D_{\mathrm{KL}}\!\left(\operatorname{Bern}(1/2)\Vert\operatorname{Bern}(r)\right)
+=1-h_2(D)-\tfrac12\log_2\!\bigl(4r(1-r)\bigr).
+$$
+
+```{python}
+#| label: fig-rate-distortion-prior
+#| fig-width: 8
+#| fig-height: 4.8
+#| fig-cap: "Prior mismatch raises the variational coding cost above the exact rate–distortion curve. At a fixed encoder (vertical dotted line), improving the prior moves downward while distortion and mutual information stay fixed. All information quantities are in bits per stimulus."
+#| fig-alt: "Three descending curves over distortion from zero to one half. The matched prior r=0.5 lies on the rate-distortion curve. Priors r=0.25 and r=0.1 raise the curve by 0.208 and 0.737 bits. A downward arrow at distortion 0.18 shows prior learning closing the mismatch gap."
+import numpy as np
+import matplotlib.pyplot as plt
+
+def binary_entropy(p):
+    p = np.asarray(p, dtype=float)
+    out = np.zeros_like(p)
+    interior = (p > 0) & (p < 1)
+    v = p[interior]
+    out[interior] = -v * np.log2(v) - (1 - v) * np.log2(1 - v)
+    return out
+
+D = np.linspace(0.0, 0.5, 501)
+rate = 1 - binary_entropy(D)
+priors = [0.1, 0.25, 0.5]
+gaps = [-0.5 * np.log2(4 * r * (1 - r)) for r in priors]
+
+# Check the identity directly from finite probability distributions,
+# including the zero-distortion and zero-information endpoints.
+for d in [0.0, 0.18, 0.5]:
+    F = np.array([[1 - d, d], [d, 1 - d]])
+    joint = 0.5 * F
+    q = joint.sum(axis=0)
+    mask = F > 0
+    I = np.sum(joint[mask] * np.log2((F / q)[mask]))
+    np.testing.assert_allclose(q, [0.5, 0.5], atol=1e-12)
+    np.testing.assert_allclose(I, 1 - binary_entropy(d), atol=1e-12)
+    for r in priors:
+        prior = np.array([1 - r, r])
+        C = np.sum(joint[mask] * np.log2((F / prior)[mask]))
+        KL = np.sum(q * np.log2(q / prior))
+        np.testing.assert_allclose(C, I + KL, atol=1e-12)
+        np.testing.assert_allclose(KL, -0.5*np.log2(4*r*(1-r)), atol=1e-12)
+
+fig, ax = plt.subplots(layout="constrained")
+for r, gap, color, style in zip(priors, gaps,
+        ["#CC6677", "#4477AA", "#228833"], ["--", "-.", "-"]):
+    label = (f"Prior r = {r:g}: +{gap:.3f} bits" if gap > 0
+             else "Matched prior r = 0.5: rate–distortion curve")
+    ax.plot(D, rate + gap, color=color, linestyle=style, linewidth=2.4,
+            label=label)
+
+d0 = 0.18
+i0 = float(1 - binary_entropy(d0))
+ax.axvline(d0, color="0.65", linestyle=":", linewidth=1.2)
+ax.annotate("", xy=(d0, i0), xytext=(d0, i0 + gaps[0]),
+            arrowprops={"arrowstyle": "->", "color": "0.2", "lw": 2})
+ax.scatter([d0, d0], [i0, i0 + gaps[0]], color="0.2", s=25, zorder=5)
+ax.text(d0 + 0.014, i0 + gaps[0]/2,
+        "Learn prior at fixed encoder\nClose the KL gap (0.737 bits)",
+        va="center", fontsize=10,
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.9})
+ax.set(xlabel="Distortion D = probability of a flipped bit",
+       ylabel="Information / variational coding cost (bits)",
+       xlim=(0, 0.5), ylim=(-0.04, 1.9))
+ax.legend(loc="upper right", frameon=True, fontsize=9)
+ax.grid(alpha=0.18)
+ax.spines[["top", "right"]].set_visible(False)
+plt.show()
+```
+
+## How to read it
+
+- **Along a curve:** change the encoder’s flip probability, trading retained information for distortion.
+- **Downward at a fixed distortion:** improve only the prior. The latent marginal remains fair; $r$ approaches $1/2$, and the mismatch penalty disappears. The encoder and its mutual information do not change.
+- **At $D=1/2$:** the latent carries no input information, yet a mismatched prior still gives positive expected KL. Positive variational rate alone does not prove informative representations.
+
+The constant vertical offsets are a property of this symmetric example, where the marginal is the same at every distortion. They need not be constant for other encoder families.
+
+::: {.callout-note}
+## When is the gap entirely prior mismatch?
+
+Only when the encoder attains the rate–distortion frontier, as it does here. For a general feasible encoder and a specified reconstruction rule with achieved distortion $D_F$,
+
+$$
+\mathcal C(F,\theta)-\mathcal R(D_F)
+=\underbrace{I_F(X;Z)-\mathcal R(D_F)}_{\text{encoder's excess rate}}
++\underbrace{D_{\mathrm{KL}}(q_F\Vert R_\theta)}_{\text{prior mismatch}}.
+$$
+
+Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic reward.
+:::
+
+## References
+
+::: {#refs}
+:::

@@ -83,6 +83,8 @@ Learning $R$ reduces prior mismatch, not the information retained by a fixed enc
 
 ### Capacity constraint and complexity penalty
 
+**Visual example:** [Rate–distortion and prior mismatch](rate-distortion-prior.qmd) shows how learning the prior closes a KL gap above a rate–distortion curve while holding the encoder fixed.
+
 The information rate is bounded by capacity $K$:
 
 $$
