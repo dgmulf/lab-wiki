@@ -11,17 +11,3 @@ Maintained collaboratively by Danny and Lab.
 - [Computational model of aesthetics](computational-aesthetics.qmd) — attention as a learned policy, perceptual compression, and learning progress as aesthetic reward. Includes the current model, candidate modeling approaches, open questions, and source links.
 
 The research content has been copied from Notion for this wiki trial. The Notion site remains available; the two copies are not automatically synchronized.
-
-## Hypotheses
-
-Record testable claims, their assumptions, and the evidence for or against them.
-
-## Experiments
-
-Document methods, observations, and reproducible results.
-
-Rendering smoke tests: [Python plot](python-plot.qmd) · [R plot](r-plot.qmd).
-
-## Literature
-
-Connect relevant papers to the questions and experiments they inform.
