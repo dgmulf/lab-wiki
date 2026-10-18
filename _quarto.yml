@@ -2,6 +2,7 @@ project:
   type: website
   output-dir: _site
 website:
+  site-url: https://clamber.exe.xyz:8080/
   title: Research Wiki
   navbar:
     left:
