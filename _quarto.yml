@@ -9,7 +9,10 @@ website:
         text: Home
 format:
   html:
-    theme: cosmo
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
     toc: true
 execute:
   enabled: true
