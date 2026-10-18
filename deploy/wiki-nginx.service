@@ -1,5 +1,6 @@
 [Unit]
-Description=Static research wiki NGINX server
+Description=Research wiki static site and Git HTTP server
+Requires=wiki-git.socket
 After=network.target
 
 [Service]

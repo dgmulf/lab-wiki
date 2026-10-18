@@ -19,7 +19,7 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 
 git_source() {
-    runuser -u exedev -- git -c safe.directory="$repository" --git-dir="$repository" "$@"
+    runuser -u wiki-git -- git -c safe.directory="$repository" --git-dir="$repository" "$@"
 }
 
 exec 9>/run/lock/wiki-build.lock

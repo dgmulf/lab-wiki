@@ -1,0 +1,11 @@
+[Unit]
+Description=Research wiki Git FastCGI socket
+
+[Socket]
+ListenStream=/run/wiki-git.socket
+SocketUser=wiki-git
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target
