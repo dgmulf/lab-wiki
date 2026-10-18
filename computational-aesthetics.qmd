@@ -21,7 +21,7 @@ This model proposes that beauty helps guide attention toward experiences from wh
 | Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
 | Aesthetic reward | Heuristically tracks learning progress and reinforces attention. |
 
-**Information flow:** sensory input → F → latent representation → likelihood under Rθ → estimated learning progress → reward for attention.
+**Information flow:** sensory input → $F$ → latent representation → likelihood under $R_\theta$ → estimated learning progress → reward for attention.
 
 ### Attention
 
@@ -31,7 +31,7 @@ $$
 \pi(x\mid s)=P(\text{attend to stimulus }x\mid\text{state }s).
 $$
 
-Here x is a stimulus and s summarizes the conditions under which attention is selected. The policy learns to favor choices that yield aesthetic reward. Retaining this policy state does not require temporal conditioning of F or R.
+Here $x$ is a stimulus and $s$ summarizes the conditions under which attention is selected. The policy learns to favor choices that yield aesthetic reward. Retaining this policy state does not require temporal conditioning of $F$ or $R$.
 
 ### Perceptual representation
 
@@ -45,9 +45,9 @@ Biological code complexity is assumed to be capacity-limited and costly. Informa
 
 ### Latent probability model
 
-The learned model Rθ(z), also called the latent prior, describes which representations are likely. It can capture structure within a representation without predicting the next time step from previous latents or actions. Its parameters θ reflect learning experience, but history is not an explicit input.
+The learned model $R_\theta(z)$, also called the latent prior, describes which representations are likely. It can capture structure within a representation without predicting the next time step from previous latents or actions. Its parameters $\theta$ reflect learning experience, but history is not an explicit input.
 
-Rθ must be a normalized probability mass function or density, not an arbitrary scalar score. Latent surprise is:
+$R_\theta$ must be a normalized probability mass function or density, not an arbitrary scalar score. Latent surprise is:
 
 $$
 \ell_\theta(z)=-\log R_\theta(z).
@@ -77,19 +77,19 @@ $$
 \mathcal C(F,\theta)=I_F(X;Z)+D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)\ge I_F(X;Z).
 $$
 
-**Interpretation:** expected KL equals information rate plus prior mismatch. For fixed F and p(x), an unrestricted optimal prior matches q_F and makes the bound tight. A restricted learned prior may leave a positive gap.
+**Interpretation:** expected KL equals information rate plus prior mismatch. For fixed $F$ and $p(x)$, an unrestricted optimal prior matches $q_F$ and makes the bound tight. A restricted learned prior may leave a positive gap.
 
-Learning R reduces prior mismatch, not the information retained by a fixed encoder under a fixed input distribution. Improved coding efficiency is the proposed biological interpretation; actual savings require a mechanism that exploits the learned distribution. The bound alone does not establish such a mechanism in organisms.
+Learning $R$ reduces prior mismatch, not the information retained by a fixed encoder under a fixed input distribution. Improved coding efficiency is the proposed biological interpretation; actual savings require a mechanism that exploits the learned distribution. The bound alone does not establish such a mechanism in organisms.
 
 ### Capacity constraint and complexity penalty
 
-The information rate is bounded by capacity K:
+The information rate is bounded by capacity $K$:
 
 $$
 I_F(X;Z)\le K.
 $$
 
-Imposing C(F,θ) ≤ K is sufficient but may be conservative when the prior is mismatched. Complexity can also enter the organism’s objective as a penalty. A candidate VAE objective with reconstruction log-loss is specified below. Its penalty weight, likelihood family, and relationship to capacity and behavioral usefulness remain open.
+Imposing $\mathcal C(F,\theta)\le K$ is sufficient but may be conservative when the prior is mismatched. Complexity can also enter the organism’s objective as a penalty. A candidate VAE objective with reconstruction log-loss is specified below. Its penalty weight, likelihood family, and relationship to capacity and behavioral usefulness remain open.
 
 **Technical conditions:** finite KL requires appropriate prior support and a well-defined rate; base-2 logs yield bits and natural logs yield nats. For continuous representations, deterministic encoders may require noise or quantization to obtain a finite information rate.
 
@@ -99,7 +99,7 @@ Imposing C(F,θ) ≤ K is sufficient but may be conservative when the prior is m
 
 Representations must preserve meaningful differences between inputs. If every input produced the same representation, prediction would be easy but perception would convey no useful information.
 
-Latent predictive learning offers one possible mechanism for acquiring F before the simplified model’s learning phase [@halvagal2023]:
+Latent predictive learning offers one possible mechanism for acquiring $F$ before the simplified model’s learning phase [@halvagal2023]:
 
 - Predictive plasticity brings representations of temporally adjacent inputs together, supporting invariance.
 - Hebbian plasticity preserves activity variation and prevents representational collapse.
@@ -109,9 +109,9 @@ That temporal training mechanism is distinct from the history-free density model
 
 ### Initial option: freeze an already-useful encoder
 
-Assume F learned useful representations on an earlier task. Freeze its parameters (a stop-gradient equivalent) and train only Rθ. This prevents encoder collapse during this phase: the prior cannot improve by making F discard distinctions.
+Assume $F$ learned useful representations on an earlier task. Freeze its parameters (a stop-gradient equivalent) and train only $R_\theta$. This prevents encoder collapse during this phase: the prior cannot improve by making $F$ discard distinctions.
 
-For a fixed input distribution, prior learning reduces mismatch in C while I_F(X;Z) remains fixed. Changing which stimuli are attended can change the input distribution, so comparisons of learning progress must distinguish model improvement from stimulus-selection effects. Learning the initial useful F remains a separate problem.
+For a fixed input distribution, prior learning reduces mismatch in $\mathcal C$ while $I_F(X;Z)$ remains fixed. Changing which stimuli are attended can change the input distribution, so comparisons of learning progress must distinguish model improvement from stimulus-selection effects. Learning the initial useful $F$ remains a separate problem.
 
 ### Initial option: learn representations with a VAE
 
@@ -127,9 +127,9 @@ $$
 \min_{F,\theta,\psi}\;\mathcal D(F,\psi)+\beta\mathcal C(F,\theta),\qquad\beta\geq0.
 $$
 
-C is the expected encoder/prior KL defined above, evaluated on the same attended-input distribution. At β = 1 this is the negative ELBO; other weights adjust the reconstruction–compression trade-off.
+$\mathcal C$ is the expected encoder/prior KL defined above, evaluated on the same attended-input distribution. At $\beta=1$ this is the negative ELBO; other weights adjust the reconstruction–compression trade-off.
 
-**Why it helps:** reconstruction encourages F to retain information needed to explain the input, while the prior learns its latent distribution. Under well-defined entropy and log-loss, the corresponding bound is:
+**Why it helps:** reconstruction encourages $F$ to retain information needed to explain the input, while the prior learns its latent distribution. Under well-defined entropy and log-loss, the corresponding bound is:
 
 $$
 H(X)-\mathcal D\leq I_F(X;Z).
@@ -137,17 +137,17 @@ $$
 
 Beating the optimal input-independent reconstruction log-loss baseline therefore requires informative latents. The likelihood family determines which errors matter; a fixed-variance isotropic Gaussian gives squared-error loss up to scaling and a constant.
 
-**Scope:** this is a candidate for useful representations, not a guarantee against collapse or of behavioral usefulness. An expressive decoder can ignore Z; @alemi2018 show that good ELBO alone does not ensure useful latents. Outcomes depend on likelihood, architecture, compression weight, and stimulus coverage. Assess rate and distortion separately: positive expected KL alone does not establish informative latents because it includes prior mismatch.
+**Scope:** this is a candidate for useful representations, not a guarantee against collapse or of behavioral usefulness. An expressive decoder can ignore $Z$; @alemi2018 show that good ELBO alone does not ensure useful latents. Outcomes depend on likelihood, architecture, compression weight, and stimulus coverage. Assess rate and distortion separately: positive expected KL alone does not establish informative latents because it includes prior mismatch.
 
 ### Learning progress as reward
 
-Let E(t) denote latent prediction error in the continually learned model:
+Let $E(t)$ denote latent prediction error in the continually learned model:
 
 $$
 \mathrm{LP}(t)=-\frac{dE(t)}{dt}.
 $$
 
-A natural error metric for this version is expected negative log likelihood under Rθ. With F and the evaluation distribution held fixed, a discrete estimate of improvement is:
+A natural error metric for this version is expected negative log likelihood under $R_\theta$. With $F$ and the evaluation distribution held fixed, a discrete estimate of improvement is:
 
 $$
 \mathrm{LP}=\mathbb E_{Z\sim q_{\mathrm{eval}}}\big[\log R_{\theta_{\mathrm{after}}}(Z)-\log R_{\theta_{\mathrm{before}}}(Z)\big].
@@ -175,7 +175,7 @@ The information-rate formulation would then use $I_F(X;Z\mid H)$, with a corresp
 - **Objective:** how should capacity, complexity cost, and reward be combined and weighted?
 - **Latent model:** which normalized density family captures the regularities people learn?
 - **Aesthetic signal:** how is progress estimated and mapped to reward, and what is the RL time horizon? How can it be separated from familiarity, memorization, changing latent targets, or shifts toward easier stimuli?
-- **Attention–perception interface:** how does policy state s govern stimulus sampling and the distribution encountered by F and R?
+- **Attention–perception interface:** how does policy state $s$ govern stimulus sampling and the distribution encountered by $F$ and $R$?
 - **Temporal extension:** when is explicit context necessary, and what history should it contain?
 
 ## Evidence and source coverage
