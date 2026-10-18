@@ -1,16 +1,16 @@
 # Research wiki host
 
-Private HTTPS endpoint: https://clamber.exe.xyz:8080/
-
-The exe.dev edge supplies certificates, TLS termination, and VM access authentication.
-NGINX serves static files on host port 8080. Existing services and the primary proxy
-target are unchanged. See https://exe.dev/docs/proxy.md for sharing/custom routing.
+NGINX serves static files on host port 8080. Configure your domain and an HTTPS
+reverse proxy or load balancer to route requests to this port. TLS certificates,
+TLS termination, and access authentication must be configured separately for your
+hosting environment.
 
 ## Publishing
 
 The canonical bare repository is `/srv/wiki/source.git`, with default branch `main`.
 Host checkouts can use `git clone /srv/wiki/source.git research-wiki`.
-Authorized SSH clients can use `git clone exedev@clamber.exe.xyz:/srv/wiki/source.git`.
+Authorized SSH clients can use `git clone <user>@<host>:/srv/wiki/source.git`,
+replacing `<user>` and `<host>` with the configured SSH account and hostname.
 SSH access must already be configured; no agent credentials or container mounts are
 installed by this setup. Agent image and transport integration are deferred.
 
@@ -84,6 +84,6 @@ and R pages, checks computed output, creates plots in both
 languages, and tests reticulate under the production container restrictions. Builds
 require network access for downloading dependencies; rendering remains offline.
 
-The bare repo currently belongs to the existing `exedev` host account. Future
+The bare repository should be owned by the host account used for Git access. Future
 agent integration should use restricted Git-only SSH credentials, not expose the
 Docker socket or grant agents general host shell/sudo access.
