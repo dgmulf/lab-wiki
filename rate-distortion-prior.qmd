@@ -1,9 +1,6 @@
 ---
 title: "Rate–distortion and prior mismatch"
 description: "An exact binary example of the extra coding cost of an inaccurate latent prior."
-jupyter: python3
-execute:
-  echo: false
 ---
 
 **The idea:** learning a latent prior can lower the variational coding cost toward the rate–distortion curve without changing what an encoder retains. This example makes the prior-mismatch term in the [aesthetics model](computational-aesthetics.qmd#measuring-information) visible.
@@ -26,12 +23,16 @@ $$
 =1-h_2(D)-\tfrac12\log_2\!\bigl(4r(1-r)\bigr).
 $$
 
-```{python}
-#| label: fig-rate-distortion-prior
-#| fig-width: 8
-#| fig-height: 4.8
-#| fig-cap: "Prior mismatch raises the variational coding cost above the exact rate–distortion curve. At a fixed encoder (vertical dotted line), improving the prior moves downward while distortion and mutual information stay fixed. All information quantities are in bits per stimulus."
-#| fig-alt: "Three descending curves over distortion from zero to one half. The matched prior r=0.5 lies on the rate-distortion curve. Priors r=0.25 and r=0.1 raise the curve by 0.208 and 0.737 bits. A downward arrow at distortion 0.18 shows prior learning closing the mismatch gap."
+![Prior mismatch raises the variational coding cost above the exact rate–distortion curve. At a fixed encoder (vertical dotted line), improving the prior moves downward while distortion and mutual information stay fixed. All information quantities are in bits per stimulus.](rate-distortion-prior.png){#fig-rate-distortion-prior fig-alt="Three descending curves over distortion from zero to one half. The matched prior r=0.5 lies on the rate-distortion curve. Priors r=0.25 and r=0.1 raise the curve by 0.208 and 0.737 bits. A downward arrow at distortion 0.18 shows prior learning closing the mismatch gap."}
+
+::: {.callout-note collapse="true"}
+## Reproduce the figure locally
+
+The figure is a precomputed static asset; publication does not execute Python.
+Run the following code locally with NumPy and Matplotlib to regenerate
+`rate-distortion-prior.png`. The assertions check the information identities.
+
+```python
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -65,7 +66,7 @@ for d in [0.0, 0.18, 0.5]:
         np.testing.assert_allclose(C, I + KL, atol=1e-12)
         np.testing.assert_allclose(KL, -0.5*np.log2(4*r*(1-r)), atol=1e-12)
 
-fig, ax = plt.subplots(layout="constrained")
+fig, ax = plt.subplots(figsize=(8, 4.8), layout="constrained")
 for r, gap, color, style in zip(priors, gaps,
         ["#CC6677", "#4477AA", "#228833"], ["--", "-.", "-"]):
     label = (f"Prior r = {r:g}: +{gap:.3f} bits" if gap > 0
@@ -89,8 +90,10 @@ ax.set(xlabel="Distortion D = probability of a flipped bit",
 ax.legend(loc="upper right", frameon=True, fontsize=9)
 ax.grid(alpha=0.18)
 ax.spines[["top", "right"]].set_visible(False)
-plt.show()
+fig.savefig("rate-distortion-prior.png", dpi=144, bbox_inches="tight")
+plt.close(fig)
 ```
+:::
 
 ## How to read it
 
