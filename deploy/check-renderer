@@ -10,55 +10,48 @@ cleanup() {
 trap cleanup EXIT
 chmod 0755 "$workspace"
 mkdir "$workspace/source"
-cat > "$workspace/source/_quarto.yml" <<'EOF'
+cat > "$workspace/source/_quarto.yml" <<'YAML'
 project:
   type: website
 execute:
-  enabled: false
-  echo: false
-EOF
-cat > "$workspace/source/index.qmd" <<'EOF'
+  enabled: true
+YAML
+cat > "$workspace/source/index.qmd" <<'QMD'
 ---
-title: Python execution check
+title: Static renderer check
 jupyter: python3
+execute:
+  enabled: true
 ---
+
+STATIC_RENDER_VERIFIED
+
+[Local asset](asset.txt)
 
 ```{python}
-import numpy as np
-import pandas as pd
-import scipy.stats as stats
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-values = pd.Series(np.arange(1, 5))
-assert values.sum() == 10
-assert stats.describe(values).nobs == 4
-print("PYTHON_EXECUTION_" + "VERIFIED")
-sns.lineplot(x=values.index, y=values)
-plt.show()
+#| eval: true
+from pathlib import Path
+Path("/work/python-executed").touch()
+raise RuntimeError("Python must not execute")
 ```
-EOF
-cat > "$workspace/source/r.qmd" <<'EOF'
+QMD
+cat > "$workspace/source/r.qmd" <<'QMD'
 ---
-title: R execution check
+title: R code example
 engine: knitr
+execute:
+  enabled: true
 ---
+
+R_STATIC_RENDER_VERIFIED
 
 ```{r}
-library(knitr)
-library(rmarkdown)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(readr)
-library(reticulate)
-values <- tibble(value = seq_len(4))
-stopifnot(sum(values$value) == 10)
-stopifnot(py_eval("sum(range(1, 5))") == 10)
-cat(paste0("R_EXECUTION_", "VERIFIED"))
-ggplot(values, aes(x = value, y = value^2)) + geom_line()
+#| eval: true
+file.create("/work/r-executed")
+stop("R must not execute")
 ```
-EOF
+QMD
+printf 'LOCAL_ASSET_VERIFIED\n' > "$workspace/source/asset.txt"
 chown -R 1000:1000 "$workspace"
 docker run --rm --name="$container" --pull=never --network=none --user=1000:1000 \
     --cap-drop=ALL --security-opt=no-new-privileges \
@@ -66,9 +59,12 @@ docker run --rm --name="$container" --pull=never --network=none --user=1000:1000
     --tmpfs=/tmp:rw,nosuid,nodev,size=512m \
     --mount="type=bind,src=$workspace,dst=/work" \
     --workdir=/work/source --env=HOME=/tmp \
-    --entrypoint=quarto "$image" render . --execute --output-dir=../output
-grep -q PYTHON_EXECUTION_VERIFIED "$workspace/output/index.html"
-grep -q R_EXECUTION_VERIFIED "$workspace/output/r.html"
-test -n "$(find "$workspace/output/index_files" -name '*.png' -print -quit)"
-test -n "$(find "$workspace/output/r_files" -name '*.png' -print -quit)"
-echo 'Python, R, reticulate, and both plotting engines passed.'
+    --entrypoint=quarto "$image" render . --no-execute --metadata engine:markdown --output-dir=../output
+grep -q STATIC_RENDER_VERIFIED "$workspace/output/index.html"
+grep -q R_STATIC_RENDER_VERIFIED "$workspace/output/r.html"
+grep -q 'Python must not execute' "$workspace/output/index.html"
+grep -q 'R must not execute' "$workspace/output/r.html"
+grep -q LOCAL_ASSET_VERIFIED "$workspace/output/asset.txt"
+test ! -e "$workspace/python-executed"
+test ! -e "$workspace/r-executed"
+echo 'Static rendering, local assets, and disabled Python/R execution passed.'

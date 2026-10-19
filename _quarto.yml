@@ -14,5 +14,6 @@ format:
       dark: darkly
     respect-user-color-scheme: true
     toc: true
+engine: markdown
 execute:
-  enabled: true
+  enabled: false

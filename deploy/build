@@ -55,7 +55,7 @@ while true; do
         --tmpfs=/tmp:rw,nosuid,nodev,size=512m \
         --mount="type=bind,src=$workspace,dst=/work" \
         --workdir=/work/source --env=HOME=/tmp \
-        --entrypoint=quarto "$image" render . --execute --output-dir=../output
+        --entrypoint=quarto "$image" render . --no-execute --metadata engine:markdown --output-dir=../output
     container=
     output="$workspace/output"
     if [[ ! -d "$output" || -L "$output" || ! -f "$output/index.html" ]]; then
