@@ -1,7 +1,0 @@
----
-title: HTTPS publishing check
----
-
-Static transport verification page.
-
-HTTPS_WIKI_TEST_a15b760ec1604ba6b1c00baf10bd2637

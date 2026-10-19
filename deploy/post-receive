@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -eu
-
-while read -r old_revision new_revision reference; do
-    if [[ "$reference" == refs/heads/main && ! "$new_revision" =~ ^0+$ ]]; then
-        touch /srv/wiki/queue/pending
-    fi
-done

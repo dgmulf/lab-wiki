@@ -2,11 +2,16 @@ project:
   type: website
   output-dir: _site
 website:
+  site-url: https://mulfordlab.exe.xyz/
   title: Research Wiki
   navbar:
     left:
       - href: index.qmd
         text: Home
+      - href: computational-aesthetics.qmd
+        text: Computational aesthetics
+bibliography: references.bib
+link-citations: true
 format:
   html:
     theme:
@@ -14,6 +19,6 @@ format:
       dark: darkly
     respect-user-color-scheme: true
     toc: true
-engine: markdown
+    citation-hover: true
 execute:
   enabled: false
