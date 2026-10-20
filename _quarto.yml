@@ -21,4 +21,4 @@ format:
     toc: true
     citation-hover: true
 execute:
-  enabled: false
+  enabled: true
