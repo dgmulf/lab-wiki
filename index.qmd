@@ -4,8 +4,9 @@ title: Research Wiki
 
 A shared notebook for hypotheses, experiments, and academic literature.
 
-Maintained collaboratively by Danny and Lab.
-
 ## Research projects
 
-- [Computational model of aesthetics](computational-aesthetics.qmd) — attention as a learned policy, perceptual compression, and learning progress as aesthetic reward. Includes the current model, candidate modeling approaches, open questions, and source links.
+- [Computational model of aesthetics](computational-aesthetics.qmd) ---
+  attention as a learned policy, perceptual compression, and learning progress
+  as aesthetic reward. Includes the current model, candidate modeling
+  approaches, open questions, and source links.

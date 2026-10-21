@@ -6,195 +6,302 @@ toc-depth: 3
 
 ## Overview
 
-This model proposes that beauty helps guide attention toward experiences from which an organism can learn. As its model of perceptual representations improves, a sense of beauty acts as an internal reward that encourages attention. Perception encodes sensory information under limited processing capacity; learning the distribution of these representations can reduce the cost of coding them.
+This model proposes that beauty helps guide attention toward experiences from
+which an organism can learn. As its model of perceptual representations
+improves, a sense of beauty acts as an internal reward that encourages
+attention. Perception encodes sensory information under limited processing
+capacity; learning the distribution of these representations can reduce the cost
+of coding them.
 
-**First-version scope:** the encoder and latent probability model have no explicit temporal-history input. Learning still accumulates past experience in their parameters. More realistic future models may incorporate temporal conditioning.
+**First-version scope:** the encoder and latent probability model have no
+explicit temporal-history input. Learning still accumulates past experience in
+their parameters. More realistic future models may incorporate temporal
+conditioning.
 
-**Model status:** conceptual hypothesis. The mathematical information bound is distinct from the proposed biological interpretation and aesthetic mechanism.
+**Model status:** conceptual hypothesis. The mathematical information bound is
+distinct from the proposed biological interpretation and aesthetic mechanism.
 
 ## Model components
 
-| Component | Role |
-|---|---|
-| Attention policy $\pi$ | Selects stimuli given the agent’s conditioning state $s$. |
-| Perceptual channel $F$ | Maps raw sensory input $X$ to a latent representation $Z$. |
-| Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
-| Aesthetic reward | Heuristically tracks learning progress and reinforces attention. |
+  | Component               | Role                                                                 |
+  | ---                     | ---                                                                  |
+  | Attention policy $\pi$  | Selects stimuli given the agent’s conditioning state $s$.            |
+  | Perceptual channel $F$  | Maps raw sensory input $X$ to a latent representation $Z$.           |
+  | Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
+  | Aesthetic reward        | Heuristically tracks learning progress and reinforces attention.     |
 
-**Information flow:** sensory input → $F$ → latent representation → likelihood under $R_\theta$ → estimated learning progress → reward for attention.
+**Information flow:** sensory input → $F$ → latent representation → likelihood
+under $R_\theta$ → estimated learning progress → reward for attention.
 
 ### Attention
 
 Attention is a learned reinforcement-learning policy:
 
 $$
-\pi(x\mid s)=P(\text{attend to stimulus }x\mid\text{state }s).
+  \pi(x \mid s) = P(\text{attend to stimulus }x \mid \text{state }s).
 $$
 
-Here $x$ is a stimulus and $s$ summarizes the conditions under which attention is selected. The policy learns to favor choices that yield aesthetic reward. Retaining this policy state does not require temporal conditioning of $F$ or $R$.
+Here $x$ is a stimulus and $s$ summarizes the conditions under which attention
+is selected. The policy learns to favor choices that yield aesthetic reward.
+Retaining this policy state does not require temporal conditioning of $F$ or
+$R$.
 
 ### Perceptual representation
 
-A perceptual encoder turns sensory input into an internal representation, called a latent. Rate–distortion theory describes the trade-off between information retained and errors introduced by compression [@sims2016]:
+A perceptual encoder turns sensory input into an internal representation, called
+a latent. Rate--distortion theory describes the trade-off between information
+retained and errors introduced by compression [@sims2016]:
 
 $$
-F(z\mid x)=P(Z=z\mid X=x).
+  F(z \mid x) = P(Z = z \mid X = x).
 $$
 
-Biological code complexity is assumed to be capacity-limited and costly. Information rate is our proposed surrogate for that cost. Useful information must be retained through a task-performance or distortion requirement; minimizing complexity alone admits an uninformative channel.
+Biological code complexity is assumed to be capacity-limited and costly.
+Information rate is our proposed surrogate for that cost. Useful information
+must be retained through a task-performance or distortion requirement;
+minimizing complexity alone admits an uninformative channel.
 
 ### Latent probability model
 
-The learned model $R_\theta(z)$, also called the latent prior, describes which representations are likely. It can capture structure within a representation without predicting the next time step from previous latents or actions. Its parameters $\theta$ reflect learning experience, but history is not an explicit input.
+The learned model $R_\theta(z)$, also called the latent prior, describes which
+representations are likely. It can capture structure within a representation
+without predicting the next time step from previous latents or actions. Its
+parameters $\theta$ reflect learning experience, but history is not an explicit
+input.
 
-$R_\theta$ must be a normalized probability mass function or density, not an arbitrary scalar score. Latent surprise is:
+$R_\theta$ must be a normalized probability mass function or density, not an
+arbitrary scalar score. Latent surprise is:
 
 $$
-\ell_\theta(z)=-\log R_\theta(z).
+  \ell_\theta(z) = -\log R_\theta(z).
 $$
 
-This first version implements latent density learning. Interpreting it as a component of a biological world model remains a hypothesis.
+This first version implements latent density learning. Interpreting it as a
+component of a biological world model remains a hypothesis.
 
 ## Information cost and capacity
 
 ### Measuring information
 
-Mutual information measures how much the latent representation tells us about sensory input. Expected KL divergence—a measure of difference between distributions—provides an upper bound on this information rate.
+Mutual information measures how much the latent representation tells us about
+sensory input. Expected KL divergence---a measure of difference between
+distributions---provides an upper bound on this information rate.
 
-Under the joint distribution $p(x)F(z\mid x)$, the aggregate latent distribution is:
+Under the joint distribution $p(x)F(z \mid x)$, the aggregate latent
+distribution is:
 
 $$
-q_F(z)=\int p(x)F(z\mid x)\,dx.
+  q_F(z) = \int p(x)F(z \mid x)\,dx.
 $$
 
 The variational rate identity underlying @alemi2018 gives:
 
 $$
-\mathcal C(F,\theta)=\mathbb E_X D_{\mathrm{KL}}\big(F(\cdot\mid X)\Vert R_\theta\big)
+  \mathcal C(F,\theta)
+  = \mathbb E_X D_{\mathrm{KL}}\big(F(\cdot \mid X)\Vert R_\theta\big)
 $$
 
 $$
-\mathcal C(F,\theta)=I_F(X;Z)+D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)\ge I_F(X;Z).
+  \mathcal C(F,\theta) = I_F(X;Z) + D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)
+                       \ge I_F(X;Z).
 $$
 
-**Interpretation:** expected KL equals information rate plus prior mismatch. For fixed $F$ and $p(x)$, an unrestricted optimal prior matches $q_F$ and makes the bound tight. A restricted learned prior may leave a positive gap.
+**Interpretation:** expected KL equals information rate plus prior mismatch. For
+fixed $F$ and $p(x)$, an unrestricted optimal prior matches $q_F$ and makes the
+bound tight. A restricted learned prior may leave a positive gap.
 
-Learning $R$ reduces prior mismatch, not the information retained by a fixed encoder under a fixed input distribution. Improved coding efficiency is the proposed biological interpretation; actual savings require a mechanism that exploits the learned distribution. The bound alone does not establish such a mechanism in organisms.
+Learning $R$ reduces prior mismatch, not the information retained by a fixed
+encoder under a fixed input distribution. Improved coding efficiency is the
+proposed biological interpretation; actual savings require a mechanism that
+exploits the learned distribution. The bound alone does not establish such a
+mechanism in organisms.
 
 ### Capacity constraint and complexity penalty
 
-**Visual example:** [Rate–distortion and prior mismatch](rate-distortion-prior.qmd) shows how learning the prior closes a KL gap above a rate–distortion curve while holding the encoder fixed.
+**Visual example:** [Rate--distortion and prior
+mismatch](rate-distortion-prior.qmd) shows how learning the prior closes a KL
+gap above a rate--distortion curve while holding the encoder fixed.
 
 The information rate is bounded by capacity $K$:
 
 $$
-I_F(X;Z)\le K.
+  I_F(X;Z) \le K.
 $$
 
-Imposing $\mathcal C(F,\theta)\le K$ is sufficient but may be conservative when the prior is mismatched. Complexity can also enter the organism’s objective as a penalty. A candidate VAE objective with reconstruction log-loss is specified below. Its penalty weight, likelihood family, and relationship to capacity and behavioral usefulness remain open.
+Imposing $\mathcal C(F,\theta) \le K$ is sufficient but may be conservative when
+the prior is mismatched. Complexity can also enter the organism's objective as a
+penalty. A candidate VAE objective with reconstruction log-loss is specified
+below. Its penalty weight, likelihood family, and relationship to capacity and
+behavioral usefulness remain open.
 
-**Technical conditions:** finite KL requires appropriate prior support and a well-defined rate; base-2 logs yield bits and natural logs yield nats. For continuous representations, deterministic encoders may require noise or quantization to obtain a finite information rate.
+**Technical conditions:** finite KL requires appropriate prior support and a
+well-defined rate; base-2 logs yield bits and natural logs yield nats. For
+continuous representations, deterministic encoders may require noise or
+quantization to obtain a finite information rate.
 
 ## Learning and aesthetic reward
 
 ### Learning informative representations
 
-Representations must preserve meaningful differences between inputs. If every input produced the same representation, prediction would be easy but perception would convey no useful information.
+Representations must preserve meaningful differences between inputs. If every
+input produced the same representation, prediction would be easy but perception
+would convey no useful information.
 
-Latent predictive learning offers one possible mechanism for acquiring $F$ before the simplified model’s learning phase [@halvagal2023]:
+Latent predictive learning offers one possible mechanism for acquiring $F$
+before the simplified model's learning phase [@halvagal2023]:
 
-- Predictive plasticity brings representations of temporally adjacent inputs together, supporting invariance.
-- Hebbian plasticity preserves activity variation and prevents representational collapse.
+- Predictive plasticity brings representations of temporally adjacent inputs
+  together, supporting invariance.
+- Hebbian plasticity preserves activity variation and prevents representational
+  collapse.
 - Prediction occurs in latent space without requiring sensory reconstruction.
 
-That temporal training mechanism is distinct from the history-free density model used here. Connecting it to our probabilistic prior and aesthetic reward is our synthesis, not a result established by that paper. Preventing collapse does not itself specify which information is task-relevant.
+That temporal training mechanism is distinct from the history-free density model
+used here. Connecting it to our probabilistic prior and aesthetic reward is our
+synthesis, not a result established by that paper. Preventing collapse does not
+itself specify which information is task-relevant.
 
 ### Initial option: freeze an already-useful encoder
 
-Assume $F$ learned useful representations on an earlier task. Freeze its parameters (a stop-gradient equivalent) and train only $R_\theta$. This prevents encoder collapse during this phase: the prior cannot improve by making $F$ discard distinctions.
+Assume $F$ learned useful representations on an earlier task. Freeze its
+parameters (a stop-gradient equivalent) and train only $R_\theta$. This prevents
+encoder collapse during this phase: the prior cannot improve by making $F$
+discard distinctions.
 
-For a fixed input distribution, prior learning reduces mismatch in $\mathcal C$ while $I_F(X;Z)$ remains fixed. Changing which stimuli are attended can change the input distribution, so comparisons of learning progress must distinguish model improvement from stimulus-selection effects. Learning the initial useful $F$ remains a separate problem.
+For a fixed input distribution, prior learning reduces mismatch in $\mathcal C$
+while $I_F(X;Z)$ remains fixed. Changing which stimuli are attended can change
+the input distribution, so comparisons of learning progress must distinguish
+model improvement from stimulus-selection effects. Learning the initial useful
+$F$ remains a separate problem.
 
 ### Initial option: learn representations with a VAE
 
-A variational autoencoder is a candidate starting point for jointly learning representations and their prior. Add a decoder $p_\psi(x\mid z)$ that reconstructs sensory input from the latent. On attended stimuli, use reconstruction log-loss, following @alemi2018 [Eqs. 2–6]:
+A variational autoencoder is a candidate starting point for jointly learning
+representations and their prior. Add a decoder $p_\psi(x \mid z)$ that
+reconstructs sensory input from the latent. On attended stimuli, use
+reconstruction log-loss, following @alemi2018 [Eqs. 2--6]:
 
 $$
-\mathcal D(F,\psi)=\mathbb E_{X\sim p_{\mathrm{att}},\,Z\sim F(\cdot\mid X)}[-\log p_\psi(X\mid Z)].
+  \mathcal D(F,\psi)
+  = \mathbb E_{X \sim p_{\mathrm{att}},\,Z \sim F( \cdot \mid X)}[-\log p_\psi(X \mid Z)].
 $$
 
 The candidate joint objective is:
 
 $$
-\min_{F,\theta,\psi}\;\mathcal D(F,\psi)+\beta\mathcal C(F,\theta),\qquad\beta\geq0.
+  \min_{F,\theta,\psi}\;\mathcal D(F,\psi) + \beta\mathcal C(F,\theta),
+  \qquad
+  \beta \geq 0.
 $$
 
-$\mathcal C$ is the expected encoder/prior KL defined above, evaluated on the same attended-input distribution. At $\beta=1$ this is the negative ELBO; other weights adjust the reconstruction–compression trade-off.
+$\mathcal C$ is the expected encoder/prior KL defined above, evaluated on the
+same attended-input distribution. At $\beta = 1$ this is the negative ELBO;
+other weights adjust the reconstruction--compression trade-off.
 
-**Why it helps:** reconstruction encourages $F$ to retain information needed to explain the input, while the prior learns its latent distribution. Under well-defined entropy and log-loss, the corresponding bound is:
+**Why it helps:** reconstruction encourages $F$ to retain information needed to
+explain the input, while the prior learns its latent distribution. Under
+well-defined entropy and log-loss, the corresponding bound is:
 
 $$
-H(X)-\mathcal D\leq I_F(X;Z).
+  H(X) - \mathcal D \leq I_F(X;Z).
 $$
 
-Beating the optimal input-independent reconstruction log-loss baseline therefore requires informative latents. The likelihood family determines which errors matter; a fixed-variance isotropic Gaussian gives squared-error loss up to scaling and a constant.
+Beating the optimal input-independent reconstruction log-loss baseline therefore
+requires informative latents. The likelihood family determines which errors
+matter; a fixed-variance isotropic Gaussian gives squared-error loss up to
+scaling and a constant.
 
-**Scope:** this is a candidate for useful representations, not a guarantee against collapse or of behavioral usefulness. An expressive decoder can ignore $Z$; @alemi2018 show that good ELBO alone does not ensure useful latents. Outcomes depend on likelihood, architecture, compression weight, and stimulus coverage. Assess rate and distortion separately: positive expected KL alone does not establish informative latents because it includes prior mismatch.
+**Scope:** this is a candidate for useful representations, not a guarantee
+against collapse or of behavioral usefulness. An expressive decoder can ignore
+$Z$; @alemi2018 show that good ELBO alone does not ensure useful latents.
+Outcomes depend on likelihood, architecture, compression weight, and stimulus
+coverage. Assess rate and distortion separately: positive expected KL alone does
+not establish informative latents because it includes prior mismatch.
 
 ### Learning progress as reward
 
 Let $E(t)$ denote latent prediction error in the continually learned model:
 
 $$
-\mathrm{LP}(t)=-\frac{dE(t)}{dt}.
+  \mathrm{LP}(t) = -\frac{dE(t)}{dt}.
 $$
 
-A natural error metric for this version is expected negative log likelihood under $R_\theta$. With $F$ and the evaluation distribution held fixed, a discrete estimate of improvement is:
+A natural error metric for this version is expected negative log likelihood
+under $R_\theta$. With $F$ and the evaluation distribution held fixed, a
+discrete estimate of improvement is:
 
 $$
-\mathrm{LP}=\mathbb E_{Z\sim q_{\mathrm{eval}}}\big[\log R_{\theta_{\mathrm{after}}}(Z)-\log R_{\theta_{\mathrm{before}}}(Z)\big].
+  \mathrm{LP}
+  = \mathbb E_{Z \sim q_{\mathrm{eval}}}\big[\log R_{\theta_{\mathrm{after}}}(Z) - \log R_{\theta_{\mathrm{before}}}(Z)\big].
 $$
 
-This is improvement over an update interval; dividing by its duration gives a rate. Aesthetic reward is hypothesized to track this improvement, rather than simply high likelihood or familiarity. The exact estimator and mapping to reward remain open. Held-out examples can help distinguish generalizable learning from memorization of just-trained items.
+This is improvement over an update interval; dividing by its duration gives a
+rate. Aesthetic reward is hypothesized to track this improvement, rather than
+simply high likelihood or familiarity. The exact estimator and mapping to reward
+remain open. Held-out examples can help distinguish generalizable learning from
+memorization of just-trained items.
 
-The aesthetic account is intended to extend @schmidhuber2009 and @brielmann2022. The precise extensions and literature comparison remain to be established against the source papers.
+The aesthetic account is intended to extend @schmidhuber2009 and @brielmann2022.
+The precise extensions and literature comparison remain to be established
+against the source papers.
 
 ## Future extension: temporal conditioning
 
-More realistic models may let both perception and the latent prior depend on shared temporal context:
+More realistic models may let both perception and the latent prior depend on
+shared temporal context:
 
 $$
-F(z_t\mid x_t,h_t),\qquad R_\theta(z_t\mid h_t),\qquad H_t=(Z_{t-1},A_{t-1})\ \text{as one candidate}.
+  F(z_t \mid x_t,h_t),\qquad R_\theta(z_t \mid h_t),
+  \qquad
+  H_t = (Z_{t-1},A_{t-1})\ \text{as one candidate}.
 $$
 
-The information-rate formulation would then use $I_F(X;Z\mid H)$, with a corresponding conditional prior-mismatch term. This could capture sequence expectations and order effects, including those important in music. It is not required for the first version; context choice and its availability to encoding and decoding processes would need to be specified.
+The information-rate formulation would then use $I_F(X;Z \mid H)$, with a
+corresponding conditional prior-mismatch term. This could capture sequence
+expectations and order effects, including those important in music. It is not
+required for the first version; context choice and its availability to encoding
+and decoding processes would need to be specified.
 
-@lai2025 provide behavioral evidence for conditional policy compression, measuring state-to-action information $I(S_t;A_t\mid S_{t-1})$. Applying that principle to a perceptual channel is a proposed extension, not direct evidence for a perceptual capacity bound. A separate attention-policy complexity penalty is not currently part of the model.
+@lai2025 provide behavioral evidence for conditional policy compression,
+measuring state-to-action information $I(S_t;A_t \mid S_{t-1})$. Applying that
+principle to a perceptual channel is a proposed extension, not direct evidence
+for a perceptual capacity bound. A separate attention-policy complexity penalty
+is not currently part of the model.
 
 ## Open questions
 
-- **Useful representation:** should initial experiments freeze a previously useful encoder or jointly learn it with the candidate VAE objective? Which likelihood, architecture, and rate–distortion trade-off preserve useful information?
-- **Objective:** how should capacity, complexity cost, and reward be combined and weighted?
-- **Latent model:** which normalized density family captures the regularities people learn?
-- **Aesthetic signal:** how is progress estimated and mapped to reward, and what is the RL time horizon? How can it be separated from familiarity, memorization, changing latent targets, or shifts toward easier stimuli?
-- **Attention–perception interface:** how does policy state $s$ govern stimulus sampling and the distribution encountered by $F$ and $R$?
-- **Temporal extension:** when is explicit context necessary, and what history should it contain?
+- **Useful representation:** should initial experiments freeze a previously
+  useful encoder or jointly learn it with the candidate VAE objective? Which
+  likelihood, architecture, and rate--distortion trade-off preserve useful
+  information?
+- **Objective:** how should capacity, complexity cost, and reward be combined
+  and weighted?
+- **Latent model:** which normalized density family captures the regularities
+  people learn?
+- **Aesthetic signal:** how is progress estimated and mapped to reward, and what
+  is the RL time horizon? How can it be separated from familiarity,
+  memorization, changing latent targets, or shifts toward easier stimuli?
+- **Attention--perception interface:** how does policy state $s$ govern stimulus
+  sampling and the distribution encountered by $F$ and $R$?
+- **Temporal extension:** when is explicit context necessary, and what history
+  should it contain?
 
 ## Evidence and source coverage
 
-The biological coding-cost interpretation, learned-prior mechanism, and aesthetic synthesis are model hypotheses. Empirical findings and mathematical identities support components without establishing the complete account.
+The biological coding-cost interpretation, learned-prior mechanism, and
+aesthetic synthesis are model hypotheses. Empirical findings and mathematical
+identities support components without establishing the complete account.
 
-The account brings together theories of perceptual compression, representation learning, and intrinsic reward. Further literature analysis is needed to establish its precise relationship to existing theories of aesthetics and to assess the biological interpretation of its information cost.
+The account brings together theories of perceptual compression, representation
+learning, and intrinsic reward. Further literature analysis is needed to
+establish its precise relationship to existing theories of aesthetics and to
+assess the biological interpretation of its information cost.
 
-**Topics:** computational aesthetics; attention; reinforcement learning; intrinsic reward; learning progress; rate–distortion; perceptual representation; mutual information; latent density learning.
+**Topics:** computational aesthetics; attention; reinforcement learning;
+intrinsic reward; learning progress; rate--distortion; perceptual
+representation; mutual information; latent density learning.
 
 ## References
 
 ::: {#refs}
-:::
-
-::: {.callout-note collapse="true"}
-## Migration provenance
-
-Copied from [the Notion research page](https://app.notion.com/p/Computational-model-of-aesthetics-3fa131acaacd813f8d67f3276d081529) on October 16, 2026 (Pacific time; October 17 UTC). The source page was last edited October 17, 2026 at 04:33 UTC. Content, all 13 display equations, and source links were preserved; the component table and inline conditional notation were adapted for Quarto. This is a snapshot, not an automatic synchronization. The Notion site remains available during the wiki trial.
 :::
