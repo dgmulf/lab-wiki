@@ -1,6 +1,9 @@
 project:
   type: website
   output-dir: _site
+  # Explicit discovery also works in worktrees under hidden directories (.codex).
+  render:
+    - "*.qmd"
 website:
   site-url: https://mulfordlab.exe.xyz/
   title: Research Wiki
