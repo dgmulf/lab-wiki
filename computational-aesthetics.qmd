@@ -245,6 +245,83 @@ The aesthetic account is intended to extend @schmidhuber2009 and @brielmann2022.
 The precise extensions and literature comparison remain to be established
 against the source papers.
 
+### Candidate reward: selecting efficient learning samples
+
+One candidate aesthetic reward favors attention policies that sample latents
+efficiently for learning the prior. The established result concerns the variance
+of a gradient estimate; interpreting this efficiency as a proxy for learning
+progress remains a model hypothesis. For this derivation, freeze the encoder $F$
+and the reference stimulus distribution $p(x)$. Write their aggregate posterior
+as $p(z) = q_F(z)$, using the definition above. This target distribution is
+fixed, not necessarily uniform. Attention instead produces the state-conditional
+latent distribution
+$$
+  q_\pi(z \mid s) = \int \pi(x \mid s)F(z \mid x)\,dx.
+$$
+Suppose the prior learns by stochastic gradient descent on expected negative log
+likelihood. Define the loss and its per-latent gradient as
+$$
+  L(\theta) = \mathbb E_{p(Z)}[-\log R_\theta(Z)],
+  \qquad
+  g_\theta(z) = \nabla_\theta[-\log R_\theta(z)].
+$$
+Sampling $X \sim \pi(\cdot \mid s)$ and then $Z \sim F(\cdot \mid X)$ gives a
+sample from $q_\pi(\cdot \mid s)$. To estimate the gradient for the fixed target
+$p$, rather than for the attended distribution, weight that sample by the
+**importance ratio**:
+$$
+  \widehat g(Z,s) = \frac{p(Z)}{q_\pi(Z \mid s)}g_\theta(Z).
+$$
+This corrects for how attention changes sampling frequency, so that
+$\mathbb E[\widehat g \mid s] = \nabla_\theta L$. Without this correction,
+attention generally changes the expected update as well as its variance.
+@alain2016 [Theorem 1] show that the proposal minimizing the trace of the
+estimator's covariance---the sum of the variances of its gradient
+components---is
+$$
+  q_\theta^*(z) = \frac{p(z)\|g_\theta(z)\|_2}{C_\theta},
+  \qquad
+  C_\theta = \mathbb E_{p(Z)}\|g_\theta(Z)\|_2.
+$$
+Assume $0 < C_\theta < \infty$, appropriate sampling support wherever
+$p(z)g_\theta(z)$ is nonzero, and finite estimator second moments for the
+proposals being compared. Hold $\theta$ fixed during each policy comparison.
+This motivates the following KL objective for attention:
+$$
+  J_s(\pi;\theta)
+  = \mathbb E_{q_\pi(Z \mid s)} [\log p(Z) + \log\|g_\theta(Z)\|_2]
+    + H_{q_\pi}(Z \mid s)
+$$
+$$
+  J_s(\pi;\theta)
+  = \log C_\theta
+    - D_{\mathrm{KL}}\big(q_\pi(\cdot \mid s)\Vert q_\theta^*\big).
+$$
+Here $H_{q_\pi}(Z \mid s) = -\mathbb E_{q_\pi}\log q_\pi(Z \mid s)$ is the
+entropy of the induced latent distribution at state $s$ (differential entropy
+for continuous latents). Assume these terms are well-defined. Because KL
+divergence is nonnegative and vanishes when its distributions match, **the
+global maximum over unrestricted latent sampling distributions occurs at the
+variance-optimal proposal $q_\theta^*$**. An attention policy attains this
+maximum only if its mixtures of $F(z \mid x)$ can realize that proposal. The
+unknown $\log p(z)$ could be approximated by $\log R_\theta(z)$ in the reward.
+This yields the candidate sample reward
+$$
+  a_\theta(z,s;\pi) = \log R_\theta(z) + \log\|g_\theta(z)\|_2
+                      - \log q_\pi(z \mid s).
+$$
+Its expected value has the same form as $J_s$, but its unrestricted optimum is
+proportional to $R_\theta(z)\|g_\theta(z)\|_2$. It approximates the
+variance-optimal proposal to the extent that this substitution approximates the
+true target. The exact global-optimum statement above uses $p(z)$. Neither
+statement establishes that reward magnitude measures actual learning progress or
+that every improvement in the KL objective reduces variance.
+
+**Status:** the shared global optimum is a mathematical result. Treating this
+objective as an estimate of learning progress remains a hypothesis. It does not
+establish a monotonic relationship between KL divergence and gradient variance,
+or measure the actual reduction in prior mismatch over an update interval.
+
 ## Future extension: temporal conditioning
 
 More realistic models may let both perception and the latent prior depend on
@@ -283,6 +360,21 @@ is not currently part of the model.
   memorization, changing latent targets, or shifts toward easier stimuli?
 - **Attention--perception interface:** how does policy state $s$ govern stimulus
   sampling and the distribution encountered by $F$ and $R$?
+- **Importance ratio:** how can the organism tractably estimate
+  $p(z)/q_\pi(z \mid s)$ for prior updates, given an unknown aggregate posterior
+  and an attention-induced latent mixture? Approximating $p$ by $R_\theta$ in
+  the selection reward does not supply an unbiased importance ratio for learning
+  $p$.
+- **Conditional entropy:** how can the organism tractably estimate
+  $H_{q_\pi}(Z \mid s)$, or the sample term $-\log q_\pi(z \mid s)$? This is
+  entropy of the latent mixture induced by attention, not simply entropy of the
+  attention policy or of $F(Z \mid X)$.
+- **KL and gradient variance:** sharing a global optimum does not guarantee that
+  gradient-estimator variance increases monotonically with
+  $D_{\mathrm{KL}}(q_\pi\Vert q_\theta^*)$. Under what additional conditions
+  does reducing this KL reduce variance and improve learning? Restrictions on
+  attainable latent distributions can also make the KL-optimal and
+  variance-optimal policies differ.
 - **Temporal extension:** when is explicit context necessary, and what history
   should it contain?
 
