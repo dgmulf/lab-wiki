@@ -1,0 +1,1 @@
+This site is intended to serve as a reference for any potential contributors, human or agent, to the ongoing research detailed within. It shouldn't assume any prior knowledge beyond a general background in cognitive science and RL.
