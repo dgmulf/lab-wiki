@@ -25,26 +25,83 @@ distinct from the proposed biological interpretation and aesthetic mechanism.
 
   | Component               | Role                                                                 |
   | ---                     | ---                                                                  |
-  | Attention policy $\pi$  | Selects stimuli given the agent’s conditioning state $s$.            |
+  | Action policy $\pi$     | Selects actions given state $s$; attention is a subset of available actions. |
+  | Transition and sensory mapping | Determine the stimulus distribution conditioned on $(s,a)$. |
   | Perceptual channel $F$  | Maps raw sensory input $X$ to a latent representation $Z$.           |
   | Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
   | Aesthetic reward        | Heuristically tracks learning progress and reinforces attention.     |
 
-**Information flow:** sensory input → $F$ → latent representation → likelihood
-under $R_\theta$ → estimated learning progress → reward for attention.
+**Information flow:** state → action under $\pi$ → transition and sensory input
+→ $F$ → latent representation → likelihood under $R_\theta$ → estimated
+learning progress → reward for the action policy.
 
 ### Attention
 
-Attention is a learned reinforcement-learning policy:
+The agent uses a reinforcement-learning policy over its available actions:
 
 $$
-  \pi(x \mid s) = P(\text{attend to stimulus }x \mid \text{state }s).
+  \pi(a \mid s) = P(A_t = a \mid S_t = s),
+  \qquad a \in \mathcal A(s).
 $$
 
-Here $x$ is a stimulus and $s$ summarizes the conditions under which attention
-is selected. The policy learns to favor choices that yield aesthetic reward.
-Retaining this policy state does not require temporal conditioning of $F$ or
-$R$.
+Attentional actions form a subset $\mathcal A_{\mathrm{att}}(s) \subseteq
+\mathcal A(s)$, alongside the agent's other actions. Examples include directing
+gaze or shifting an internal attentional focus. Aesthetic reward is one proposed
+contribution to the reward guiding this policy. Other actions can also change
+what the agent encounters and perceives.
+
+### Stimuli as consequences of actions
+
+The stimulus $x$ is an outcome of acting, rather than the policy's output. Let
+$s$ be a Markov state of the agent--environment system, including relevant
+internal conditions such as attentional focus. The transition kernel
+
+$$
+  T(s' \mid s,a) = P(S_{t+1} = s' \mid S_t = s,A_t = a)
+$$
+
+characterizes the next-state distribution. A sensory observation kernel
+$O(x \mid s',a)$ specifies the input reaching the encoder after that transition.
+Together they characterize the stimulus distribution conditioned on $(s,a)$:
+
+$$
+  T_X(x \mid s,a) = \int T(s' \mid s,a)O(x \mid s',a)\,ds'.
+$$
+
+Thus $A_t \sim \pi(\cdot \mid S_t)$, $S_{t+1} \sim T(\cdot \mid S_t,A_t)$,
+$X_{t+1} \sim O(\cdot \mid S_{t+1},A_t)$, and
+$Z_{t+1} \sim F(\cdot \mid X_{t+1})$. Integrals become sums for discrete
+variables. If sensory input is a deterministic function of the next state,
+$O$ simply implements that mapping; if $X_{t+1}=S_{t+1}$, then $T_X=T$.
+In general, a stimulus is a sample from $T_X$, not the transition function
+itself. This distinction between transitions and observations follows the
+[standard POMDP formulation](https://www.pomdp.org/tutorial/pomdp-background.html).
+
+An attentional action can change sensory input without changing the external
+scene, through the internal part of the state or the action-dependent sensory
+mapping. Here $F(z \mid x)$ encodes the resulting input and remains fixed across
+actions unless explicitly learned. An additional direct effect of attention on
+encoding would require extending $F$.
+
+Writing $\pi(a \mid s)$ assumes that the policy has access to its conditioning
+state. If the relevant environment state is hidden, the policy instead needs
+an observation, history, or belief state; it cannot condition directly on an
+unobserved state. Retaining policy state and environment dynamics does not
+require temporal-history inputs to $F$ or $R$.
+
+The policy-induced stimulus distribution at a given state is
+
+$$
+  p_\pi(x \mid s) = \int_{\mathcal A(s)}
+    \pi(a \mid s)T_X(x \mid s,a)\,da.
+$$
+
+The attended-input distribution $p_{\mathrm{att}}(x)$ used below denotes the
+distribution of inputs used for perceptual learning. If every action supplies
+a learning sample, it is $\int d_\pi(s)p_\pi(x \mid s)\,ds$, where $d_\pi$ is
+the state distribution over the sampling period. If learning uses only a subset
+of transitions, this distribution must instead be conditioned on that selection.
+Changing the policy can change both the actions at a state and the states visited.
 
 ### Perceptual representation
 
@@ -247,16 +304,19 @@ against the source papers.
 
 ### Candidate reward: selecting efficient learning samples
 
-One candidate aesthetic reward favors attention policies that sample latents
+One candidate aesthetic reward favors action policies that sample latents
 efficiently for learning the prior. The established result concerns the variance
 of a gradient estimate; interpreting this efficiency as a proxy for learning
 progress remains a model hypothesis. For this derivation, freeze the encoder $F$
 and the reference stimulus distribution $p(x)$. Write their aggregate posterior
 as $p(z) = q_F(z)$, using the definition above. This target distribution is
-fixed, not necessarily uniform. Attention instead produces the state-conditional
-latent distribution
+fixed, not necessarily uniform. The action policy and transition-induced
+stimulus distribution instead produce the state-conditional latent distribution
 $$
-  q_\pi(z \mid s) = \int \pi(x \mid s)F(z \mid x)\,dx.
+  q_\pi(z \mid s)
+  = \int p_\pi(x \mid s)F(z \mid x)\,dx
+  = \int_{\mathcal A(s)}\pi(a \mid s)
+      \left[\int T_X(x \mid s,a)F(z \mid x)\,dx\right]da.
 $$
 Suppose the prior learns by stochastic gradient descent on expected negative log
 likelihood. Define the loss and its per-latent gradient as
@@ -265,16 +325,19 @@ $$
   \qquad
   g_\theta(z) = \nabla_\theta[-\log R_\theta(z)].
 $$
-Sampling $X \sim \pi(\cdot \mid s)$ and then $Z \sim F(\cdot \mid X)$ gives a
-sample from $q_\pi(\cdot \mid s)$. To estimate the gradient for the fixed target
+Sampling $A \sim \pi(\cdot \mid s)$, then $X \sim T_X(\cdot \mid s,A)$, and
+then $Z \sim F(\cdot \mid X)$ gives a sample from $q_\pi(\cdot \mid s)$.
+Here every sampled transition supplies a latent; selectively retaining samples
+would require using the corresponding conditional proposal instead.
+To estimate the gradient for the fixed target
 $p$, rather than for the attended distribution, weight that sample by the
 **importance ratio**:
 $$
   \widehat g(Z,s) = \frac{p(Z)}{q_\pi(Z \mid s)}g_\theta(Z).
 $$
-This corrects for how attention changes sampling frequency, so that
+This corrects for how the action policy changes sampling frequency, so that
 $\mathbb E[\widehat g \mid s] = \nabla_\theta L$. Without this correction,
-attention generally changes the expected update as well as its variance.
+the policy generally changes the expected update as well as its variance.
 @alain2016 [Theorem 1] show that the proposal minimizing the trace of the
 estimator's covariance---the sum of the variances of its gradient
 components---is
@@ -286,7 +349,7 @@ $$
 Assume $0 < C_\theta < \infty$, appropriate sampling support wherever
 $p(z)g_\theta(z)$ is nonzero, and finite estimator second moments for the
 proposals being compared. Hold $\theta$ fixed during each policy comparison.
-This motivates the following KL objective for attention:
+This motivates the following statewise KL objective for the action policy:
 $$
   J_s(\pi;\theta)
   = \mathbb E_{q_\pi(Z \mid s)} [\log p(Z) + \log\|g_\theta(Z)\|_2]
@@ -302,12 +365,17 @@ entropy of the induced latent distribution at state $s$ (differential entropy
 for continuous latents). Assume these terms are well-defined. Because KL
 divergence is nonnegative and vanishes when its distributions match, **the
 global maximum over unrestricted latent sampling distributions occurs at the
-variance-optimal proposal $q_\theta^*$**. An attention policy attains this
-maximum only if its mixtures of $F(z \mid x)$ can realize that proposal. The
+variance-optimal proposal $q_\theta^*$**. An action policy attains this
+maximum only if its mixtures of the action-conditioned latent distributions
+$\int T_X(x \mid s,a)F(z \mid x)\,dx$ can realize that proposal. In particular,
+importance weighting cannot recover target contributions that no available
+action can reach from $s$. This is a fixed-state sampling objective, not a
+solution to the full sequential control problem: actions also change future
+states, and other rewards or costs may affect the optimal policy. The
 unknown $\log p(z)$ could be approximated by $\log R_\theta(z)$ in the reward.
 This yields the candidate sample reward
 $$
-  a_\theta(z,s;\pi) = \log R_\theta(z) + \log\|g_\theta(z)\|_2
+  r_{\mathrm{aest},\theta}(z,s;\pi) = \log R_\theta(z) + \log\|g_\theta(z)\|_2
                       - \log q_\pi(z \mid s).
 $$
 Its expected value has the same form as $J_s$, but its unrestricted optimum is
@@ -342,7 +410,7 @@ and decoding processes would need to be specified.
 @lai2025 provide behavioral evidence for conditional policy compression,
 measuring state-to-action information $I(S_t;A_t \mid S_{t-1})$. Applying that
 principle to a perceptual channel is a proposed extension, not direct evidence
-for a perceptual capacity bound. A separate attention-policy complexity penalty
+for a perceptual capacity bound. A separate action-policy complexity penalty
 is not currently part of the model.
 
 ## Open questions
@@ -358,17 +426,19 @@ is not currently part of the model.
 - **Aesthetic signal:** how is progress estimated and mapped to reward, and what
   is the RL time horizon? How can it be separated from familiarity,
   memorization, changing latent targets, or shifts toward easier stimuli?
-- **Attention--perception interface:** how does policy state $s$ govern stimulus
-  sampling and the distribution encountered by $F$ and $R$?
+- **Attention--perception interface:** which actions belong to
+  $\mathcal A_{\mathrm{att}}(s)$, and how do $T$ and $O$ determine their sensory
+  consequences? Which state information is available to the policy, and which
+  transitions supply learning samples?
 - **Importance ratio:** how can the organism tractably estimate
   $p(z)/q_\pi(z \mid s)$ for prior updates, given an unknown aggregate posterior
-  and an attention-induced latent mixture? Approximating $p$ by $R_\theta$ in
+  and an action-induced latent mixture? Approximating $p$ by $R_\theta$ in
   the selection reward does not supply an unbiased importance ratio for learning
   $p$.
 - **Conditional entropy:** how can the organism tractably estimate
   $H_{q_\pi}(Z \mid s)$, or the sample term $-\log q_\pi(z \mid s)$? This is
-  entropy of the latent mixture induced by attention, not simply entropy of the
-  attention policy or of $F(Z \mid X)$.
+  entropy of the latent mixture induced by the policy, transitions, and sensory
+  mapping, not simply entropy of the action policy or of $F(Z \mid X)$.
 - **KL and gradient variance:** sharing a global optimum does not guarantee that
   gradient-estimator variance increases monotonically with
   $D_{\mathrm{KL}}(q_\pi\Vert q_\theta^*)$. Under what additional conditions
