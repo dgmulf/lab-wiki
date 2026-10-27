@@ -4,6 +4,7 @@ project:
   # Explicit discovery also works in worktrees under hidden directories (.codex).
   render:
     - "*.qmd"
+    - "!rv/"
 website:
   site-url: https://mulfordlab.exe.xyz/
   title: Research Wiki

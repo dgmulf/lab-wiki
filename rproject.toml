@@ -1,0 +1,7 @@
+[project]
+name = "lab-wiki"
+r_version = "4.6"
+repositories = [{ alias = "CRAN", url = "https://cloud.r-project.org" }]
+dependencies = ["rmarkdown",
+    "ggplot2",
+]
