@@ -3,3 +3,5 @@
 /mise.toml
 
 **/*.quarto_ipynb
+.zed/
+.codex/environments/
