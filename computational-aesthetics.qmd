@@ -31,6 +31,7 @@ distinct from the proposed biological interpretation and aesthetic mechanism.
 | Perceptual channel $F$ | Encodes sensory input $X$ as latent representation $Z$. |
 | Memory update $U$ | Summarizes past latents and actions for the policy. |
 | Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
+| Importance estimator $w_\eta$ | Uses running latent feature statistics to estimate how sampling in the current context differs from the marginal of experience. |
 | Aesthetic reward | Heuristically tracks learning progress and contributes to action selection. |
 
 **Information flow:** sensory input → $F$ → current latent and memory → action
@@ -329,7 +330,10 @@ of a gradient estimate; interpreting this efficiency as a proxy for learning
 progress remains a model hypothesis. For this derivation, freeze the encoder $F$
 and the reference stimulus distribution $p(x)$. Write their aggregate posterior
 as $p(z) = q_F(z)$, using the definition above. This target distribution is
-fixed, not necessarily uniform. At fixed current information $c=(z_t,h_t)$,
+fixed, not necessarily uniform. In the proposed online model below, the reference
+is the marginal of ongoing experience, treated as approximately fixed because
+its change under aesthetic learning is assumed to be small on the relevant
+learning timescale. At fixed current information $c=(z_t,h_t)$,
 the policy induces a distribution over the **next** latent $z'=z_{t+1}$:
 
 $$
@@ -396,24 +400,181 @@ $\int p(x'\mid c,a)F(z\mid x')\,dx'$ can realize that proposal. In particular,
 importance weighting cannot recover target contributions that no available
 action can reach given $c$. This is a local sampling objective, not a
 solution to the full sequential control problem: actions also change future
-states, and other rewards or costs may affect the optimal policy. The
-unknown $\log p(z)$ could be approximated by $\log R_\theta(z)$ in the reward.
-This yields the candidate sample reward
+states, and other rewards or costs may affect the optimal policy. Define
+$w(z,c)=p(z)/q_\pi(z\mid c)$. The corresponding ideal sample reward is
 $$
-  r_{\mathrm{aest},\theta}(z,c;\pi) = \log R_\theta(z) + \log\|g_\theta(z)\|_2
-                      - \log q_\pi(z \mid c).
+  r_{\mathrm{aest},\theta}(z,c;\pi)
+  = \log\|g_\theta(z)\|_2 + \log w(z,c).
 $$
-Its expected value has the same form as $J_c$, but its unrestricted optimum is
-proportional to $R_\theta(z)\|g_\theta(z)\|_2$. It approximates the
-variance-optimal proposal to the extent that this substitution approximates the
-true target. The exact global-optimum statement above uses $p(z)$. Neither
-statement establishes that reward magnitude measures actual learning progress or
-that every improvement in the KL objective reduces variance.
+The estimator below approximates this ratio directly for use in both reward and
+prior learning. A separate possible approximation is to replace $p$ by
+$R_\theta$ in the reward, but that changes the unrestricted optimum to a proposal
+proportional to $R_\theta(z)\|g_\theta(z)\|_2$ and does not itself provide a
+correct importance weight for learning $p$.
 
 **Status:** the shared global optimum is a mathematical result. Treating this
 objective as an estimate of learning progress remains a hypothesis. It does not
 establish a monotonic relationship between KL divergence and gradient variance,
 or measure the actual reduction in prior mismatch over an update interval.
+
+### Candidate estimator: running latent feature averages {#sec-feature-ema}
+
+The online target is the **marginal of ongoing experience**, averaged over
+contexts. For a given policy and context distribution $\mu_\pi$, define
+
+$$
+  p_\pi(z)=\mathbb E_{C\sim\mu_\pi}[q_\pi(z\mid C)].
+$$
+
+This identity does not require attention to preserve an external reference
+distribution. Both the conditional sampling distribution and the context
+distribution can change with the policy. Our modeling assumption is that
+aesthetic learning changes the long-run marginal slowly and by little enough
+that we can hold it fixed during local learning comparisons. We write this
+approximately fixed marginal as $p$ below. The variance-optimal result above is
+therefore a local reference calculation, not a claim about the equilibrium of
+all contexts and a changing marginal together.
+
+For fixed prior parameters, unweighted samples already satisfy
+$\mathbb E_{C,Z}[g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]$. Exact importance
+weighting has the stronger property
+$\mathbb E_{Z\mid c}[w(Z,c)g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]$ for each
+context with adequate support. It corrects context-dependent sampling; it is
+not needed merely to recover the marginal expectation. Whether approximate
+weighting improves learning depends on its errors, variance, and temporal
+correlations in experience.
+
+#### What is retained from experience
+
+Choose a fixed feature map $f:\mathcal Z\to\mathbb R^d$ and maintain an
+exponential moving average (EMA) of its activity. For transition $t$, the context
+is $c_t=(z_t,h_t)$ and the new latent is $z_{t+1}$:
+
+$$
+  m_{t+1}=(1-\beta)m_t+\beta f(z_{t+1}),
+  \qquad 0<\beta<1.
+$$
+
+After initialization effects subside, $m_t$ estimates
+$\mathbb E_p[f(Z)]$ using exponentially decaying weights on past experience.
+No individual historical latents are retained. The average is updated from
+**unweighted** observations, since their marginal is the target. Small $\beta$
+gives a longer memory, with a decay timescale of approximately $1/\beta$
+transitions. The averaging window should cover short-term sampling fluctuations
+while remaining short relative to substantial marginal drift. Correlated
+experience reduces the amount of independent information in that window.
+
+Represent the ratio using a context-dependent coefficient vector:
+
+$$
+  w_\eta(z,c)=a_\eta(c)^\top f(z).
+$$
+
+The map from context to coefficients can be nonlinear. Linearity in the stored
+features is what allows the marginal expectation to be computed from the EMA:
+
+$$
+  \mathbb E_p[w_\eta(Z,c)]
+  =a_\eta(c)^\top\mathbb E_p[f(Z)]
+  \approx a_\eta(c)^\top m_t.
+$$
+
+#### Learning the ratio
+
+At fixed $c$, consider the population objective
+
+$$
+  \mathcal L_c(w)
+  =\frac12\mathbb E_{q_\pi(Z\mid c)}[w(Z,c)^2]
+   -\mathbb E_{p(Z)}[w(Z,c)].
+$$
+
+Assume $p$ has support within $q_\pi(\cdot\mid c)$ and the ratio has finite
+second moment under that conditional distribution. Completing the square gives
+
+$$
+  \mathcal L_c(w)
+  =\frac12\mathbb E_{q_\pi(Z\mid c)}
+    \left[\left(w(Z,c)-\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right]
+   -\frac12\mathbb E_{q_\pi(Z\mid c)}
+    \left[\left(\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right].
+$$
+
+The last term does not depend on the estimator. The unrestricted minimizer is
+therefore the true importance ratio; a restricted feature model approximates it
+in conditional mean squared error. The corresponding online training loss is
+
+$$
+  \widehat{\mathcal L}_t(\eta)
+  =\frac12\left[a_\eta(c_t)^\top f(z_{t+1})\right]^2
+   -a_\eta(c_t)^\top m_t.
+$$
+
+Treat $m_t$ and $f$ as fixed when differentiating this loss with respect to
+$\eta$. This is a proposed online approximation to the population objective:
+EMA noise, lag, and correlations between recent history and the current context
+mean it is not generally an unbiased conditional loss estimate. Its accuracy
+requires suitable timescales and adequate coverage of contexts and latents.
+
+#### Why use features rather than the latent directly?
+
+The choice $f(z)=z$ is allowed, but stores only the latent mean and restricts the
+ratio to a linear function of the latent coordinates. Adding a constant feature,
+$f(z)=(1,z)$, permits an intercept and the baseline $w=1$. Equal means need not
+imply equal distributions: two symmetric distributions can have different tail
+probabilities, requiring weights that depend on magnitude rather than sign.
+Squared coordinates, fixed nonlinear basis functions, or soft category
+memberships can capture such differences. For one-hot categorical latents,
+$f(z)=z$ already stores all category frequencies.
+
+Thus $f$ is a readout of the existing latent representation, not necessarily a
+separate learned representation. Its purpose is to expose statistics useful for
+estimating the ratio. An arbitrary nonlinear ratio network cannot generally use
+the raw mean in place of an expectation:
+$\mathbb E_p[w_\eta(Z,c)]\ne w_\eta(\mathbb E_p[Z],c)$.
+Initially freeze both $F$ and $f$ so that stored averages retain their meaning.
+Learning either representation would require addressing stale statistics.
+
+#### Shared use in reward and prior updates
+
+Using the estimator before training it on the current transition, compute
+
+$$
+  \widehat w_t=w_{\eta_t}(z_{t+1},c_t),
+  \qquad
+  \widehat r_{\mathrm{aest},t}
+  =\log\|g_{\theta_t}(z_{t+1})\|_2+\log\widehat w_t,
+$$
+
+$$
+  \theta_{t+1}
+  =\theta_t-\alpha_t\widehat w_t\,g_{\theta_t}(z_{t+1}).
+$$
+
+The same estimate supplies the additive log-ratio term in aesthetic reward and
+the multiplicative weight on the prior's loss gradient. Train $\eta$ using
+$\widehat{\mathcal L}_t$ and the pre-observation $m_t$, then incorporate
+$f(z_{t+1})$ into the EMA. The prior update treats the weight as a coefficient,
+without differentiating through the ratio estimator. The action policy learns
+from the resulting aesthetic reward; no additional importance weighting of its
+own parameter update is proposed here.
+
+The reward requires strictly positive weights and nonzero gradient magnitude.
+One possible positive model uses nonnegative features and coefficients with a
+positive constant contribution. This preserves the linear expectation identity
+but restricts the function family. Alternatively, flooring or clipping outputs
+for numerical stability changes the effective weight and reward and introduces
+additional approximation. Applying a nonlinear output function also prevents
+using $a_\eta(c)^\top m_t$ as its marginal expectation without a new derivation.
+
+**Status and limitations:** the population minimizer follows from the algebra
+above; the feature EMA implementation and its biological interpretation are
+model proposals. Finite features, positivity constraints, estimation error, and
+marginal drift prevent a general claim of unbiased prior updates or optimal
+sampling. Aesthetic reward changes sampling, and the estimator tracks the
+resulting imbalance through experience statistics; reward alone does not
+identify the ratio. This approach estimates $\log p-\log q_\pi$ jointly and
+does not separately recover either density or conditional entropy.
 
 ## Future extension: temporal conditioning
 
@@ -454,15 +615,19 @@ is not currently part of the model.
   supply learning samples?
 - **Policy memory:** what should $U$ retain in $h_t$ to support decisions from
   $(z_t,h_t)$ under partial observability?
-- **Importance ratio:** how can the organism tractably estimate
-  $p(z)/q_\pi(z \mid c)$ for prior updates, given an unknown aggregate posterior
-  and an action-induced latent mixture? Approximating $p$ by $R_\theta$ in
-  the selection reward does not supply an unbiased importance ratio for learning
-  $p$.
+- **Importance ratio:** for the feature EMA candidate, which fixed features,
+  positivity constraints, and learning timescales yield accurate weights? How
+  much bias arises from correlated experience and marginal drift, and when does
+  weighting outperform unweighted prior learning?
+- **Slow marginal:** is the long-run latent marginal sufficiently stable under
+  aesthetic learning to justify the local fixed-target approximation? How should
+  the estimator track larger changes in policy, environment, or representation?
 - **Conditional entropy:** how can the organism tractably estimate
   $H_{q_\pi}(Z \mid c)$, or the sample term $-\log q_\pi(z \mid c)$? This is
   entropy of the latent mixture induced by the policy, transitions, and sensory
-  mapping, not simply entropy of the action policy or of $F(Z \mid X)$.
+  mapping, not simply entropy of the action policy or of $F(Z \mid X)$. The
+  ratio-based reward avoids estimating this term separately, but does not solve
+  conditional entropy estimation itself.
 - **KL and gradient variance:** sharing a global optimum does not guarantee that
   gradient-estimator variance increases monotonically with
   $D_{\mathrm{KL}}(q_\pi\Vert q_\theta^*)$. Under what additional conditions
