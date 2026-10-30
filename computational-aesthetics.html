@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Attention, perceptual compression, and learning progress as aesthetic reward.">
+
+<title>Computational model of aesthetics – Research Wiki</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b626d73c4c936ccc3cb08be7d45d1df6.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-445b8638c3d06994fee0907d791121c4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-df07115ad9f15e2ef3479c789e6873c8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-445b8638c3d06994fee0907d791121c4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const queryPrefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkModeDefault = queryPrefersDark.matches;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    queryPrefersDark.addEventListener("change", e => {
+      if(window.localStorage.getItem("quarto-color-scheme") !== null)
+        return;
+      const alternate = e.matches
+      toggleColorMode(alternate);
+      localAlternateSentinel = e.matches ? 'alternate' : 'default'; // this is used alongside local storage!
+      toggleGiscusIfUsed(alternate, darkModeDefault);
+    });
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Research Wiki</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./computational-aesthetics.html" aria-current="page"> 
+<span class="menu-text">Computational aesthetics</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#model-components" id="toc-model-components" class="nav-link" data-scroll-target="#model-components">Model components</a>
+  <ul class="collapse">
+  <li><a href="#attention" id="toc-attention" class="nav-link" data-scroll-target="#attention">Attention</a></li>
+  <li><a href="#stimuli-as-consequences-of-actions" id="toc-stimuli-as-consequences-of-actions" class="nav-link" data-scroll-target="#stimuli-as-consequences-of-actions">Stimuli as consequences of actions</a></li>
+  <li><a href="#perceptual-representation" id="toc-perceptual-representation" class="nav-link" data-scroll-target="#perceptual-representation">Perceptual representation</a></li>
+  <li><a href="#latent-probability-model" id="toc-latent-probability-model" class="nav-link" data-scroll-target="#latent-probability-model">Latent probability model</a></li>
+  </ul></li>
+  <li><a href="#information-cost-and-capacity" id="toc-information-cost-and-capacity" class="nav-link" data-scroll-target="#information-cost-and-capacity">Information cost and capacity</a>
+  <ul class="collapse">
+  <li><a href="#measuring-information" id="toc-measuring-information" class="nav-link" data-scroll-target="#measuring-information">Measuring information</a></li>
+  <li><a href="#capacity-constraint-and-complexity-penalty" id="toc-capacity-constraint-and-complexity-penalty" class="nav-link" data-scroll-target="#capacity-constraint-and-complexity-penalty">Capacity constraint and complexity penalty</a></li>
+  </ul></li>
+  <li><a href="#learning-and-aesthetic-reward" id="toc-learning-and-aesthetic-reward" class="nav-link" data-scroll-target="#learning-and-aesthetic-reward">Learning and aesthetic reward</a>
+  <ul class="collapse">
+  <li><a href="#learning-informative-representations" id="toc-learning-informative-representations" class="nav-link" data-scroll-target="#learning-informative-representations">Learning informative representations</a></li>
+  <li><a href="#initial-option-freeze-an-already-useful-encoder" id="toc-initial-option-freeze-an-already-useful-encoder" class="nav-link" data-scroll-target="#initial-option-freeze-an-already-useful-encoder">Initial option: freeze an already-useful encoder</a></li>
+  <li><a href="#initial-option-learn-representations-with-a-vae" id="toc-initial-option-learn-representations-with-a-vae" class="nav-link" data-scroll-target="#initial-option-learn-representations-with-a-vae">Initial option: learn representations with a VAE</a></li>
+  <li><a href="#learning-progress-as-reward" id="toc-learning-progress-as-reward" class="nav-link" data-scroll-target="#learning-progress-as-reward">Learning progress as reward</a></li>
+  <li><a href="#candidate-reward-selecting-efficient-learning-samples" id="toc-candidate-reward-selecting-efficient-learning-samples" class="nav-link" data-scroll-target="#candidate-reward-selecting-efficient-learning-samples">Candidate reward: selecting efficient learning samples</a></li>
+  <li><a href="#sec-feature-ema" id="toc-sec-feature-ema" class="nav-link" data-scroll-target="#sec-feature-ema">Candidate estimator: running latent feature averages</a></li>
+  </ul></li>
+  <li><a href="#future-extension-temporal-conditioning" id="toc-future-extension-temporal-conditioning" class="nav-link" data-scroll-target="#future-extension-temporal-conditioning">Future extension: temporal conditioning</a></li>
+  <li><a href="#open-questions" id="toc-open-questions" class="nav-link" data-scroll-target="#open-questions">Open questions</a></li>
+  <li><a href="#evidence-and-source-coverage" id="toc-evidence-and-source-coverage" class="nav-link" data-scroll-target="#evidence-and-source-coverage">Evidence and source coverage</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Computational model of aesthetics</h1>
+</div>
+
+<div>
+  <div class="description">
+    Attention, perceptual compression, and learning progress as aesthetic reward.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>This model proposes that beauty helps guide attention toward experiences from which an organism can learn. As its model of perceptual representations improves, a sense of beauty acts as an internal reward that encourages attention. Perception encodes sensory information under limited processing capacity; learning the distribution of these representations can reduce the cost of coding them.</p>
+<p><strong>First-version scope:</strong> the encoder and latent probability model have no explicit temporal-history input. The action policy uses current perceptual latents and memory. Learning also accumulates past experience in model parameters. Future models may condition the encoder and latent prior on memory.</p>
+<p><strong>Model status:</strong> conceptual hypothesis. The mathematical information bound is distinct from the proposed biological interpretation and aesthetic mechanism.</p>
+</section>
+<section id="model-components" class="level2">
+<h2 class="anchored" data-anchor-id="model-components">Model components</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Action policy <span class="math inline">\(\pi\)</span></td>
+<td>Selects movement and attentional controls from current latent <span class="math inline">\(z\)</span> and memory <span class="math inline">\(h\)</span>.</td>
+</tr>
+<tr class="even">
+<td>Transition model <span class="math inline">\(T\)</span></td>
+<td>Updates the hidden state, including attentional and sensor configuration.</td>
+</tr>
+<tr class="odd">
+<td>Observation density <span class="math inline">\(E\)</span></td>
+<td>Generates sensory input <span class="math inline">\(X\)</span> from state <span class="math inline">\(S\)</span>.</td>
+</tr>
+<tr class="even">
+<td>Perceptual channel <span class="math inline">\(F\)</span></td>
+<td>Encodes sensory input <span class="math inline">\(X\)</span> as latent representation <span class="math inline">\(Z\)</span>.</td>
+</tr>
+<tr class="odd">
+<td>Memory update <span class="math inline">\(U\)</span></td>
+<td>Summarizes past latents and actions for the policy.</td>
+</tr>
+<tr class="even">
+<td>Latent model <span class="math inline">\(R_\theta\)</span></td>
+<td>Assigns a normalized probability distribution to perceptual latents.</td>
+</tr>
+<tr class="odd">
+<td>Importance estimator <span class="math inline">\(w_\eta\)</span></td>
+<td>Uses running latent feature statistics to estimate how sampling in the current context differs from the marginal of experience.</td>
+</tr>
+<tr class="even">
+<td>Aesthetic reward</td>
+<td>Heuristically tracks learning progress and contributes to action selection.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Information flow:</strong> sensory input → <span class="math inline">\(F\)</span> → current latent and memory → action under <span class="math inline">\(\pi\)</span> → state transition → next sensory input. Learning from the latents provides the proposed aesthetic reward.</p>
+<section id="attention" class="level3">
+<h3 class="anchored" data-anchor-id="attention">Attention</h3>
+<p>Actions have movement and attentional dimensions:</p>
+<p><span class="math display">\[
+  a_t = (a_t^{\mathrm{move}},a_t^{\mathrm{att}}),
+  \qquad \mathcal A = \mathcal A_{\mathrm{move}} \times \mathcal A_{\mathrm{att}}.
+\]</span></p>
+<p>This follows the camera/manipulator action-space construction in <span class="citation" data-cites="weng2024">Weng et al. (<a href="#ref-weng2024" role="doc-biblioref">2024, sec. III</a>)</span>, generalized here to movement and attention. An agent can move while redirecting gaze or internal attentional focus. Both dimensions can affect sensory input. Factoring the action space does not assume independent controls: we use a joint policy over the pair.</p>
+<p>The policy acts on the current perceptual latent <span class="math inline">\(z_t\)</span> and memory <span class="math inline">\(h_t\)</span>:</p>
+<p><span class="math display">\[
+  a_t \sim \pi(\cdot \mid z_t,h_t),
+  \qquad h_{t+1} = U(h_t,z_t,a_t).
+\]</span></p>
+<p>Here <span class="math inline">\(h_t\)</span> summarizes experience before the current latent, with an initial memory <span class="math inline">\(h_0\)</span>. The update stores information from the current latent and action for the next decision. The policy has no direct access to the hidden state <span class="math inline">\(s_t\)</span>. This use of an internal representation of experience is consistent with the agent-state approach of <span class="citation" data-cites="hu2025">Hu et al. (<a href="#ref-hu2025" role="doc-biblioref">2025, sec. 3</a>)</span>; our particular split into a perceptual latent and memory is a modeling choice. A compressed memory is not automatically a sufficient statistic or an exact belief state. Aesthetic reward is one proposed contribution to the reward guiding this policy.</p>
+</section>
+<section id="stimuli-as-consequences-of-actions" class="level3">
+<h3 class="anchored" data-anchor-id="stimuli-as-consequences-of-actions">Stimuli as consequences of actions</h3>
+<p>Let <span class="math inline">\(s_t\)</span> be the hidden Markov state of the agent–environment system. It fully specifies the external scene and the attentional and sensor configuration. Following the observation-density notation of <span class="citation" data-cites="hu2025">Hu et al. (<a href="#ref-hu2025" role="doc-biblioref">2025, sec. 3</a>)</span>, the interaction is</p>
+<p><span class="math display">\[
+  x_t \sim E(\cdot \mid s_t),\qquad z_t \sim F(\cdot \mid x_t),
+\]</span> <span class="math display">\[
+  a_t \sim \pi(\cdot \mid z_t,h_t),\qquad
+  s_{t+1} \sim T(\cdot \mid s_t,a_t).
+\]</span></p>
+<p>The next input is then <span class="math inline">\(x_{t+1}\sim E(\cdot\mid s_{t+1})\)</span>. We retain <span class="math inline">\(x\)</span> for sensory input, corresponding to the observation <span class="math inline">\(o\)</span> in robotics. The observation density <span class="math inline">\(E(x\mid s)\)</span> has no additional action dependence: actions change what is perceived by changing state, including sensor or attentional configuration. For example, turning the eyes changes the retinal input even if the scene stays still. <span class="math inline">\(E\)</span> describes input generation; <span class="math inline">\(F\)</span> describes its subsequent encoding. Neither requires a temporal-history input in this first version, even though the policy uses memory.</p>
+<p>The resulting stimulus distribution conditioned on state and action is</p>
+<p><span class="math display">\[
+  p(x' \mid s,a) = \int T(s' \mid s,a)E(x' \mid s')\,ds'.
+\]</span></p>
+<p>Primes denote the next time step. Integrals become sums for discrete variables. A stimulus is sampled from this distribution; the policy selects the action that influences it.</p>
+<p>To describe sampling from the agent’s perspective, write <span class="math inline">\(c=(z,h)\)</span> for its current information and <span class="math inline">\(b(s\mid c)\)</span> for the conditional distribution of hidden state given that information. This is an analytical distribution, not a requirement that the agent explicitly calculate a belief. Define</p>
+<p><span class="math display">\[
+  p(x'\mid c,a)=\int b(s\mid c)p(x'\mid s,a)\,ds,
+  \qquad
+  p_\pi(x'\mid c)=\int_{\mathcal A}\pi(a\mid z,h)p(x'\mid c,a)\,da.
+\]</span></p>
+<p>The attended-input distribution <span class="math inline">\(p_{\mathrm{att}}(x)\)</span> used below denotes the inputs used for perceptual learning. If every transition supplies a sample, <span class="math inline">\(p_{\mathrm{att}}(x')=\int d_\pi(c)p_\pi(x'\mid c)\,dc\)</span>, where <span class="math inline">\(d_\pi\)</span> is the distribution of current latents and memories over the sampling period. If only some transitions supply samples, condition on that selection. Both <span class="math inline">\(d_\pi\)</span> and <span class="math inline">\(b(s\mid c)\)</span> can change with the policy and experience; neither requires a stationary or Markov process over <span class="math inline">\(c\)</span>.</p>
+</section>
+<section id="perceptual-representation" class="level3">
+<h3 class="anchored" data-anchor-id="perceptual-representation">Perceptual representation</h3>
+<p>A perceptual encoder turns sensory input into an internal representation, called a latent. Rate–distortion theory describes the trade-off between information retained and errors introduced by compression <span class="citation" data-cites="sims2016">(<a href="#ref-sims2016" role="doc-biblioref">Sims 2016</a>)</span>:</p>
+<p><span class="math display">\[
+  F(z \mid x) = P(Z = z \mid X = x).
+\]</span></p>
+<p>Biological code complexity is assumed to be capacity-limited and costly. Information rate is our proposed surrogate for that cost. Useful information must be retained through a task-performance or distortion requirement; minimizing complexity alone admits an uninformative channel.</p>
+</section>
+<section id="latent-probability-model" class="level3">
+<h3 class="anchored" data-anchor-id="latent-probability-model">Latent probability model</h3>
+<p>The learned model <span class="math inline">\(R_\theta(z)\)</span>, also called the latent prior, describes which representations are likely. It can capture structure within a representation without predicting the next time step from previous latents or actions. Its parameters <span class="math inline">\(\theta\)</span> reflect learning experience, but history is not an explicit input.</p>
+<p><span class="math inline">\(R_\theta\)</span> must be a normalized probability mass function or density, not an arbitrary scalar score. Latent surprise is:</p>
+<p><span class="math display">\[
+  \ell_\theta(z) = -\log R_\theta(z).
+\]</span></p>
+<p>This first version implements latent density learning. Interpreting it as a component of a biological world model remains a hypothesis.</p>
+</section>
+</section>
+<section id="information-cost-and-capacity" class="level2">
+<h2 class="anchored" data-anchor-id="information-cost-and-capacity">Information cost and capacity</h2>
+<section id="measuring-information" class="level3">
+<h3 class="anchored" data-anchor-id="measuring-information">Measuring information</h3>
+<p>Mutual information measures how much the latent representation tells us about sensory input. Expected KL divergence—a measure of difference between distributions—provides an upper bound on this information rate.</p>
+<p>Under the joint distribution <span class="math inline">\(p(x)F(z \mid x)\)</span>, the aggregate latent distribution is:</p>
+<p><span class="math display">\[
+  q_F(z) = \int p(x)F(z \mid x)\,dx.
+\]</span></p>
+<p>The variational rate identity underlying <span class="citation" data-cites="alemi2018">Alemi et al. (<a href="#ref-alemi2018" role="doc-biblioref">2018</a>)</span> gives:</p>
+<p><span class="math display">\[
+  \mathcal C(F,\theta)
+  = \mathbb E_X D_{\mathrm{KL}}\big(F(\cdot \mid X)\Vert R_\theta\big)
+\]</span></p>
+<p><span class="math display">\[
+  \mathcal C(F,\theta) = I_F(X;Z) + D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)
+                       \ge I_F(X;Z).
+\]</span></p>
+<p><strong>Interpretation:</strong> expected KL equals information rate plus prior mismatch. For fixed <span class="math inline">\(F\)</span> and <span class="math inline">\(p(x)\)</span>, an unrestricted optimal prior matches <span class="math inline">\(q_F\)</span> and makes the bound tight. A restricted learned prior may leave a positive gap.</p>
+<p>Learning <span class="math inline">\(R\)</span> reduces prior mismatch, not the information retained by a fixed encoder under a fixed input distribution. Improved coding efficiency is the proposed biological interpretation; actual savings require a mechanism that exploits the learned distribution. The bound alone does not establish such a mechanism in organisms.</p>
+</section>
+<section id="capacity-constraint-and-complexity-penalty" class="level3">
+<h3 class="anchored" data-anchor-id="capacity-constraint-and-complexity-penalty">Capacity constraint and complexity penalty</h3>
+<p><strong>Visual example:</strong> <a href="./rate-distortion-prior.html">Rate–distortion and prior mismatch</a> shows how learning the prior closes a KL gap above a rate–distortion curve while holding the encoder fixed.</p>
+<p>The information rate is bounded by capacity <span class="math inline">\(K\)</span>:</p>
+<p><span class="math display">\[
+  I_F(X;Z) \le K.
+\]</span></p>
+<p>Imposing <span class="math inline">\(\mathcal C(F,\theta) \le K\)</span> is sufficient but may be conservative when the prior is mismatched. Complexity can also enter the organism’s objective as a penalty. A candidate VAE objective with reconstruction log-loss is specified below. Its penalty weight, likelihood family, and relationship to capacity and behavioral usefulness remain open.</p>
+<p><strong>Technical conditions:</strong> finite KL requires appropriate prior support and a well-defined rate; base-2 logs yield bits and natural logs yield nats. For continuous representations, deterministic encoders may require noise or quantization to obtain a finite information rate.</p>
+</section>
+</section>
+<section id="learning-and-aesthetic-reward" class="level2">
+<h2 class="anchored" data-anchor-id="learning-and-aesthetic-reward">Learning and aesthetic reward</h2>
+<section id="learning-informative-representations" class="level3">
+<h3 class="anchored" data-anchor-id="learning-informative-representations">Learning informative representations</h3>
+<p>Representations must preserve meaningful differences between inputs. If every input produced the same representation, prediction would be easy but perception would convey no useful information.</p>
+<p>Latent predictive learning offers one possible mechanism for acquiring <span class="math inline">\(F\)</span> before the simplified model’s learning phase <span class="citation" data-cites="halvagal2023">(<a href="#ref-halvagal2023" role="doc-biblioref">Halvagal and Zenke 2023</a>)</span>:</p>
+<ul>
+<li>Predictive plasticity brings representations of temporally adjacent inputs together, supporting invariance.</li>
+<li>Hebbian plasticity preserves activity variation and prevents representational collapse.</li>
+<li>Prediction occurs in latent space without requiring sensory reconstruction.</li>
+</ul>
+<p>That temporal training mechanism is distinct from the history-free density model used here. Connecting it to our probabilistic prior and aesthetic reward is our synthesis, not a result established by that paper. Preventing collapse does not itself specify which information is task-relevant.</p>
+</section>
+<section id="initial-option-freeze-an-already-useful-encoder" class="level3">
+<h3 class="anchored" data-anchor-id="initial-option-freeze-an-already-useful-encoder">Initial option: freeze an already-useful encoder</h3>
+<p>Assume <span class="math inline">\(F\)</span> learned useful representations on an earlier task. Freeze its parameters (a stop-gradient equivalent) and train only <span class="math inline">\(R_\theta\)</span>. This prevents encoder collapse during this phase: the prior cannot improve by making <span class="math inline">\(F\)</span> discard distinctions.</p>
+<p>For a fixed input distribution, prior learning reduces mismatch in <span class="math inline">\(\mathcal C\)</span> while <span class="math inline">\(I_F(X;Z)\)</span> remains fixed. Changing which stimuli are attended can change the input distribution, so comparisons of learning progress must distinguish model improvement from stimulus-selection effects. Learning the initial useful <span class="math inline">\(F\)</span> remains a separate problem.</p>
+</section>
+<section id="initial-option-learn-representations-with-a-vae" class="level3">
+<h3 class="anchored" data-anchor-id="initial-option-learn-representations-with-a-vae">Initial option: learn representations with a VAE</h3>
+<p>A variational autoencoder is a candidate starting point for jointly learning representations and their prior. Add a decoder <span class="math inline">\(p_\psi(x \mid z)\)</span> that reconstructs sensory input from the latent. On attended stimuli, use reconstruction log-loss, following <span class="citation" data-cites="alemi2018">Alemi et al. (<a href="#ref-alemi2018" role="doc-biblioref">2018</a>, Eqs. 2–6)</span>:</p>
+<p><span class="math display">\[
+  \mathcal D(F,\psi)
+  = \mathbb E_{X \sim p_{\mathrm{att}},\,Z \sim F( \cdot \mid X)}[-\log p_\psi(X \mid Z)].
+\]</span></p>
+<p>The candidate joint objective is:</p>
+<p><span class="math display">\[
+  \min_{F,\theta,\psi}\;\mathcal D(F,\psi) + \beta\mathcal C(F,\theta),
+  \qquad
+  \beta \geq 0.
+\]</span></p>
+<p><span class="math inline">\(\mathcal C\)</span> is the expected encoder/prior KL defined above, evaluated on the same attended-input distribution. At <span class="math inline">\(\beta = 1\)</span> this is the negative ELBO; other weights adjust the reconstruction–compression trade-off.</p>
+<p><strong>Why it helps:</strong> reconstruction encourages <span class="math inline">\(F\)</span> to retain information needed to explain the input, while the prior learns its latent distribution. Under well-defined entropy and log-loss, the corresponding bound is:</p>
+<p><span class="math display">\[
+  H(X) - \mathcal D \leq I_F(X;Z).
+\]</span></p>
+<p>Beating the optimal input-independent reconstruction log-loss baseline therefore requires informative latents. The likelihood family determines which errors matter; a fixed-variance isotropic Gaussian gives squared-error loss up to scaling and a constant.</p>
+<p><strong>Scope:</strong> this is a candidate for useful representations, not a guarantee against collapse or of behavioral usefulness. An expressive decoder can ignore <span class="math inline">\(Z\)</span>; <span class="citation" data-cites="alemi2018">Alemi et al. (<a href="#ref-alemi2018" role="doc-biblioref">2018</a>)</span> show that good ELBO alone does not ensure useful latents. Outcomes depend on likelihood, architecture, compression weight, and stimulus coverage. Assess rate and distortion separately: positive expected KL alone does not establish informative latents because it includes prior mismatch.</p>
+</section>
+<section id="learning-progress-as-reward" class="level3">
+<h3 class="anchored" data-anchor-id="learning-progress-as-reward">Learning progress as reward</h3>
+<p>Let <span class="math inline">\(\mathcal L_{\mathrm{eval}}(t)\)</span> denote latent prediction error in the continually learned model:</p>
+<p><span class="math display">\[
+  \mathrm{LP}(t) = -\frac{d\mathcal L_{\mathrm{eval}}(t)}{dt}.
+\]</span></p>
+<p>A natural error metric for this version is expected negative log likelihood under <span class="math inline">\(R_\theta\)</span>. With <span class="math inline">\(F\)</span> and the evaluation distribution held fixed, a discrete estimate of improvement is:</p>
+<p><span class="math display">\[
+  \mathrm{LP}
+  = \mathbb E_{Z \sim q_{\mathrm{eval}}}\big[\log R_{\theta_{\mathrm{after}}}(Z) - \log R_{\theta_{\mathrm{before}}}(Z)\big].
+\]</span></p>
+<p>This is improvement over an update interval; dividing by its duration gives a rate. Aesthetic reward is hypothesized to track this improvement, rather than simply high likelihood or familiarity. The exact estimator and mapping to reward remain open. Held-out examples can help distinguish generalizable learning from memorization of just-trained items.</p>
+<p>The aesthetic account is intended to extend <span class="citation" data-cites="schmidhuber2009">Schmidhuber (<a href="#ref-schmidhuber2009" role="doc-biblioref">2009</a>)</span> and <span class="citation" data-cites="brielmann2022">Brielmann and Dayan (<a href="#ref-brielmann2022" role="doc-biblioref">2022</a>)</span>. The precise extensions and literature comparison remain to be established against the source papers.</p>
+</section>
+<section id="candidate-reward-selecting-efficient-learning-samples" class="level3">
+<h3 class="anchored" data-anchor-id="candidate-reward-selecting-efficient-learning-samples">Candidate reward: selecting efficient learning samples</h3>
+<p>One candidate aesthetic reward favors action policies that sample latents efficiently for learning the prior. The established result concerns the variance of a gradient estimate; interpreting this efficiency as a proxy for learning progress remains a model hypothesis. For this derivation, freeze the encoder <span class="math inline">\(F\)</span> and the reference stimulus distribution <span class="math inline">\(p(x)\)</span>. Write their aggregate posterior as <span class="math inline">\(p(z) = q_F(z)\)</span>, using the definition above. This target distribution is fixed, not necessarily uniform. In the proposed online model below, the reference is the marginal of ongoing experience, treated as approximately fixed because its change under aesthetic learning is assumed to be small on the relevant learning timescale. At fixed current information <span class="math inline">\(c=(z_t,h_t)\)</span>, the policy induces a distribution over the <strong>next</strong> latent <span class="math inline">\(z'=z_{t+1}\)</span>:</p>
+<p><span class="math display">\[
+  q_\pi(z'\mid c)
+  = \int p_\pi(x'\mid c)F(z'\mid x')\,dx'
+  = \int_{\mathcal A}\pi(a\mid z_t,h_t)
+      \left[\int p(x'\mid c,a)F(z'\mid x')\,dx'\right]da.
+\]</span></p>
+<p>Hold <span class="math inline">\(b(s\mid c)\)</span>, <span class="math inline">\(T\)</span>, and <span class="math inline">\(E\)</span> fixed for this local policy comparison. In the rest of this derivation, <span class="math inline">\(Z\)</span> denotes the next latent sampled from this proposal, not the current latent used to choose the action.</p>
+<p>Suppose the prior learns by stochastic gradient descent on expected negative log likelihood. Define the loss and its per-latent gradient as <span class="math display">\[
+  L(\theta) = \mathbb E_{p(Z)}[-\log R_\theta(Z)],
+  \qquad
+  g_\theta(z) = \nabla_\theta[-\log R_\theta(z)].
+\]</span> Sampling <span class="math inline">\(A\sim\pi(\cdot\mid z_t,h_t)\)</span>, then <span class="math inline">\(X'\sim p(\cdot\mid c,A)\)</span>, and then <span class="math inline">\(Z\sim F(\cdot\mid X')\)</span> gives a sample from <span class="math inline">\(q_\pi(\cdot\mid c)\)</span>. Here every sampled transition supplies a latent; selectively retaining samples would require using the corresponding conditional proposal instead. To estimate the gradient for the fixed target <span class="math inline">\(p\)</span>, rather than for the attended distribution, weight that sample by the <strong>importance ratio</strong>: <span class="math display">\[
+  \widehat g(Z,c) = \frac{p(Z)}{q_\pi(Z \mid c)}g_\theta(Z).
+\]</span> This corrects for how the action policy changes sampling frequency, so that <span class="math inline">\(\mathbb E[\widehat g \mid c] = \nabla_\theta L\)</span>. Without this correction, the policy generally changes the expected update as well as its variance. <span class="citation" data-cites="alain2016">Alain et al. (<a href="#ref-alain2016" role="doc-biblioref">2016</a>, Theorem 1)</span> show that the proposal minimizing the trace of the estimator’s covariance—the sum of the variances of its gradient components—is <span class="math display">\[
+  q_\theta^*(z) = \frac{p(z)\|g_\theta(z)\|_2}{C_\theta},
+  \qquad
+  C_\theta = \mathbb E_{p(Z)}\|g_\theta(Z)\|_2.
+\]</span> Assume <span class="math inline">\(0 &lt; C_\theta &lt; \infty\)</span>, appropriate sampling support wherever <span class="math inline">\(p(z)g_\theta(z)\)</span> is nonzero, and finite estimator second moments for the proposals being compared. Hold <span class="math inline">\(\theta\)</span> fixed during each policy comparison. This motivates the following KL objective for the action policy at fixed <span class="math inline">\(c\)</span>: <span class="math display">\[
+  J_c(\pi;\theta)
+  = \mathbb E_{q_\pi(Z \mid c)} [\log p(Z) + \log\|g_\theta(Z)\|_2]
+    + H_{q_\pi}(Z \mid c)
+\]</span> <span class="math display">\[
+  J_c(\pi;\theta)
+  = \log C_\theta
+    - D_{\mathrm{KL}}\big(q_\pi(\cdot \mid c)\Vert q_\theta^*\big).
+\]</span> Here <span class="math inline">\(H_{q_\pi}(Z \mid c) = -\mathbb E_{q_\pi}\log q_\pi(Z \mid c)\)</span> is the entropy of the induced latent distribution given current information <span class="math inline">\(c\)</span> (differential entropy for continuous latents). Assume these terms are well-defined. Because KL divergence is nonnegative and vanishes when its distributions match, <strong>the global maximum over unrestricted latent sampling distributions occurs at the variance-optimal proposal <span class="math inline">\(q_\theta^*\)</span></strong>. An action policy attains this maximum only if its mixtures of the action-conditioned latent distributions <span class="math inline">\(\int p(x'\mid c,a)F(z\mid x')\,dx'\)</span> can realize that proposal. In particular, importance weighting cannot recover target contributions that no available action can reach given <span class="math inline">\(c\)</span>. This is a local sampling objective, not a solution to the full sequential control problem: actions also change future states, and other rewards or costs may affect the optimal policy. Define <span class="math inline">\(w(z,c)=p(z)/q_\pi(z\mid c)\)</span>. The corresponding ideal sample reward is <span class="math display">\[
+  r_{\mathrm{aest},\theta}(z,c;\pi)
+  = \log\|g_\theta(z)\|_2 + \log w(z,c).
+\]</span> The estimator below approximates this ratio directly for use in both reward and prior learning. A separate possible approximation is to replace <span class="math inline">\(p\)</span> by <span class="math inline">\(R_\theta\)</span> in the reward, but that changes the unrestricted optimum to a proposal proportional to <span class="math inline">\(R_\theta(z)\|g_\theta(z)\|_2\)</span> and does not itself provide a correct importance weight for learning <span class="math inline">\(p\)</span>.</p>
+<p><strong>Status:</strong> the shared global optimum is a mathematical result. Treating this objective as an estimate of learning progress remains a hypothesis. It does not establish a monotonic relationship between KL divergence and gradient variance, or measure the actual reduction in prior mismatch over an update interval.</p>
+</section>
+<section id="sec-feature-ema" class="level3">
+<h3 class="anchored" data-anchor-id="sec-feature-ema">Candidate estimator: running latent feature averages</h3>
+<p>The online target is the <strong>marginal of ongoing experience</strong>, averaged over contexts. For a given policy and context distribution <span class="math inline">\(\mu_\pi\)</span>, define</p>
+<p><span class="math display">\[
+  p_\pi(z)=\mathbb E_{C\sim\mu_\pi}[q_\pi(z\mid C)].
+\]</span></p>
+<p>This identity does not require attention to preserve an external reference distribution. Both the conditional sampling distribution and the context distribution can change with the policy. Our modeling assumption is that aesthetic learning changes the long-run marginal slowly and by little enough that we can hold it fixed during local learning comparisons. We write this approximately fixed marginal as <span class="math inline">\(p\)</span> below. The variance-optimal result above is therefore a local reference calculation, not a claim about the equilibrium of all contexts and a changing marginal together.</p>
+<p>For fixed prior parameters, unweighted samples already satisfy <span class="math inline">\(\mathbb E_{C,Z}[g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]\)</span>. Exact importance weighting has the stronger property <span class="math inline">\(\mathbb E_{Z\mid c}[w(Z,c)g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]\)</span> for each context with adequate support. It corrects context-dependent sampling; it is not needed merely to recover the marginal expectation. Whether approximate weighting improves learning depends on its errors, variance, and temporal correlations in experience.</p>
+<section id="what-is-retained-from-experience" class="level4">
+<h4 class="anchored" data-anchor-id="what-is-retained-from-experience">What is retained from experience</h4>
+<p>Choose a fixed feature map <span class="math inline">\(f:\mathcal Z\to\mathbb R^d\)</span> and maintain an exponential moving average (EMA) of its activity. For transition <span class="math inline">\(t\)</span>, the context is <span class="math inline">\(c_t=(z_t,h_t)\)</span> and the new latent is <span class="math inline">\(z_{t+1}\)</span>:</p>
+<p><span class="math display">\[
+  m_{t+1}=(1-\beta)m_t+\beta f(z_{t+1}),
+  \qquad 0&lt;\beta&lt;1.
+\]</span></p>
+<p>After initialization effects subside, <span class="math inline">\(m_t\)</span> estimates <span class="math inline">\(\mathbb E_p[f(Z)]\)</span> using exponentially decaying weights on past experience. No individual historical latents are retained. The average is updated from <strong>unweighted</strong> observations, since their marginal is the target. Small <span class="math inline">\(\beta\)</span> gives a longer memory, with a decay timescale of approximately <span class="math inline">\(1/\beta\)</span> transitions. The averaging window should cover short-term sampling fluctuations while remaining short relative to substantial marginal drift. Correlated experience reduces the amount of independent information in that window.</p>
+<p>Represent the ratio using a context-dependent coefficient vector:</p>
+<p><span class="math display">\[
+  w_\eta(z,c)=a_\eta(c)^\top f(z).
+\]</span></p>
+<p>The map from context to coefficients can be nonlinear. Linearity in the stored features is what allows the marginal expectation to be computed from the EMA:</p>
+<p><span class="math display">\[
+  \mathbb E_p[w_\eta(Z,c)]
+  =a_\eta(c)^\top\mathbb E_p[f(Z)]
+  \approx a_\eta(c)^\top m_t.
+\]</span></p>
+</section>
+<section id="learning-the-ratio" class="level4">
+<h4 class="anchored" data-anchor-id="learning-the-ratio">Learning the ratio</h4>
+<p>At fixed <span class="math inline">\(c\)</span>, consider the population objective</p>
+<p><span class="math display">\[
+  \mathcal L_c(w)
+  =\frac12\mathbb E_{q_\pi(Z\mid c)}[w(Z,c)^2]
+   -\mathbb E_{p(Z)}[w(Z,c)].
+\]</span></p>
+<p>Assume <span class="math inline">\(p\)</span> has support within <span class="math inline">\(q_\pi(\cdot\mid c)\)</span> and the ratio has finite second moment under that conditional distribution. Completing the square gives</p>
+<p><span class="math display">\[
+  \mathcal L_c(w)
+  =\frac12\mathbb E_{q_\pi(Z\mid c)}
+    \left[\left(w(Z,c)-\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right]
+   -\frac12\mathbb E_{q_\pi(Z\mid c)}
+    \left[\left(\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right].
+\]</span></p>
+<p>The last term does not depend on the estimator. The unrestricted minimizer is therefore the true importance ratio; a restricted feature model approximates it in conditional mean squared error. The corresponding online training loss is</p>
+<p><span class="math display">\[
+  \widehat{\mathcal L}_t(\eta)
+  =\frac12\left[a_\eta(c_t)^\top f(z_{t+1})\right]^2
+   -a_\eta(c_t)^\top m_t.
+\]</span></p>
+<p>Treat <span class="math inline">\(m_t\)</span> and <span class="math inline">\(f\)</span> as fixed when differentiating this loss with respect to <span class="math inline">\(\eta\)</span>. This is a proposed online approximation to the population objective: EMA noise, lag, and correlations between recent history and the current context mean it is not generally an unbiased conditional loss estimate. Its accuracy requires suitable timescales and adequate coverage of contexts and latents.</p>
+</section>
+<section id="why-use-features-rather-than-the-latent-directly" class="level4">
+<h4 class="anchored" data-anchor-id="why-use-features-rather-than-the-latent-directly">Why use features rather than the latent directly?</h4>
+<p>The choice <span class="math inline">\(f(z)=z\)</span> is allowed, but stores only the latent mean and restricts the ratio to a linear function of the latent coordinates. Adding a constant feature, <span class="math inline">\(f(z)=(1,z)\)</span>, permits an intercept and the baseline <span class="math inline">\(w=1\)</span>. Equal means need not imply equal distributions: two symmetric distributions can have different tail probabilities, requiring weights that depend on magnitude rather than sign. Squared coordinates, fixed nonlinear basis functions, or soft category memberships can capture such differences. For one-hot categorical latents, <span class="math inline">\(f(z)=z\)</span> already stores all category frequencies.</p>
+<p>Thus <span class="math inline">\(f\)</span> is a readout of the existing latent representation, not necessarily a separate learned representation. Its purpose is to expose statistics useful for estimating the ratio. An arbitrary nonlinear ratio network cannot generally use the raw mean in place of an expectation: <span class="math inline">\(\mathbb E_p[w_\eta(Z,c)]\ne w_\eta(\mathbb E_p[Z],c)\)</span>. Initially freeze both <span class="math inline">\(F\)</span> and <span class="math inline">\(f\)</span> so that stored averages retain their meaning. Learning either representation would require addressing stale statistics.</p>
+</section>
+<section id="shared-use-in-reward-and-prior-updates" class="level4">
+<h4 class="anchored" data-anchor-id="shared-use-in-reward-and-prior-updates">Shared use in reward and prior updates</h4>
+<p>Using the estimator before training it on the current transition, compute</p>
+<p><span class="math display">\[
+  \widehat w_t=w_{\eta_t}(z_{t+1},c_t),
+  \qquad
+  \widehat r_{\mathrm{aest},t}
+  =\log\|g_{\theta_t}(z_{t+1})\|_2+\log\widehat w_t,
+\]</span></p>
+<p><span class="math display">\[
+  \theta_{t+1}
+  =\theta_t-\alpha_t\widehat w_t\,g_{\theta_t}(z_{t+1}).
+\]</span></p>
+<p>The same estimate supplies the additive log-ratio term in aesthetic reward and the multiplicative weight on the prior’s loss gradient. Train <span class="math inline">\(\eta\)</span> using <span class="math inline">\(\widehat{\mathcal L}_t\)</span> and the pre-observation <span class="math inline">\(m_t\)</span>, then incorporate <span class="math inline">\(f(z_{t+1})\)</span> into the EMA. The prior update treats the weight as a coefficient, without differentiating through the ratio estimator. The action policy learns from the resulting aesthetic reward; no additional importance weighting of its own parameter update is proposed here.</p>
+<p>The reward requires strictly positive weights and nonzero gradient magnitude. One possible positive model uses nonnegative features and coefficients with a positive constant contribution. This preserves the linear expectation identity but restricts the function family. Alternatively, flooring or clipping outputs for numerical stability changes the effective weight and reward and introduces additional approximation. Applying a nonlinear output function also prevents using <span class="math inline">\(a_\eta(c)^\top m_t\)</span> as its marginal expectation without a new derivation.</p>
+<p><strong>Status and limitations:</strong> the population minimizer follows from the algebra above; the feature EMA implementation and its biological interpretation are model proposals. Finite features, positivity constraints, estimation error, and marginal drift prevent a general claim of unbiased prior updates or optimal sampling. Aesthetic reward changes sampling, and the estimator tracks the resulting imbalance through experience statistics; reward alone does not identify the ratio. This approach estimates <span class="math inline">\(\log p-\log q_\pi\)</span> jointly and does not separately recover either density or conditional entropy.</p>
+</section>
+</section>
+</section>
+<section id="future-extension-temporal-conditioning" class="level2">
+<h2 class="anchored" data-anchor-id="future-extension-temporal-conditioning">Future extension: temporal conditioning</h2>
+<p>The policy already uses memory <span class="math inline">\(h_t\)</span>. A future extension would also condition perception and the latent prior on that memory:</p>
+<p><span class="math display">\[
+  F(z_t \mid x_t,h_t),\qquad R_\theta(z_t \mid h_t).
+\]</span></p>
+<p>The information-rate formulation would then use <span class="math inline">\(I_F(X;Z \mid H)\)</span>, with a corresponding conditional prior-mismatch term. This could capture sequence expectations and order effects, including those important in music. It is not required for the first version; context choice and its availability to encoding and decoding processes would need to be specified.</p>
+<p><span class="citation" data-cites="lai2025">Lai et al. (<a href="#ref-lai2025" role="doc-biblioref">2025</a>)</span> provide behavioral evidence for conditional policy compression, measuring state-to-action information <span class="math inline">\(I(S_t;A_t \mid S_{t-1})\)</span>. Applying that principle to a perceptual channel is a proposed extension, not direct evidence for a perceptual capacity bound. A separate action-policy complexity penalty is not currently part of the model.</p>
+</section>
+<section id="open-questions" class="level2">
+<h2 class="anchored" data-anchor-id="open-questions">Open questions</h2>
+<ul>
+<li><strong>Useful representation:</strong> should initial experiments freeze a previously useful encoder or jointly learn it with the candidate VAE objective? Which likelihood, architecture, and rate–distortion trade-off preserve useful information?</li>
+<li><strong>Objective:</strong> how should capacity, complexity cost, and reward be combined and weighted?</li>
+<li><strong>Latent model:</strong> which normalized density family captures the regularities people learn?</li>
+<li><strong>Aesthetic signal:</strong> how is progress estimated and mapped to reward, and what is the RL time horizon? How can it be separated from familiarity, memorization, changing latent targets, or shifts toward easier stimuli?</li>
+<li><strong>Attention–perception interface:</strong> how do movement and attentional controls change state through <span class="math inline">\(T\)</span>, and sensory input through <span class="math inline">\(E\)</span>? Which transitions supply learning samples?</li>
+<li><strong>Policy memory:</strong> what should <span class="math inline">\(U\)</span> retain in <span class="math inline">\(h_t\)</span> to support decisions from <span class="math inline">\((z_t,h_t)\)</span> under partial observability?</li>
+<li><strong>Importance ratio:</strong> for the feature EMA candidate, which fixed features, positivity constraints, and learning timescales yield accurate weights? How much bias arises from correlated experience and marginal drift, and when does weighting outperform unweighted prior learning?</li>
+<li><strong>Slow marginal:</strong> is the long-run latent marginal sufficiently stable under aesthetic learning to justify the local fixed-target approximation? How should the estimator track larger changes in policy, environment, or representation?</li>
+<li><strong>Conditional entropy:</strong> how can the organism tractably estimate <span class="math inline">\(H_{q_\pi}(Z \mid c)\)</span>, or the sample term <span class="math inline">\(-\log q_\pi(z \mid c)\)</span>? This is entropy of the latent mixture induced by the policy, transitions, and sensory mapping, not simply entropy of the action policy or of <span class="math inline">\(F(Z \mid X)\)</span>. The ratio-based reward avoids estimating this term separately, but does not solve conditional entropy estimation itself.</li>
+<li><strong>KL and gradient variance:</strong> sharing a global optimum does not guarantee that gradient-estimator variance increases monotonically with <span class="math inline">\(D_{\mathrm{KL}}(q_\pi\Vert q_\theta^*)\)</span>. Under what additional conditions does reducing this KL reduce variance and improve learning? Restrictions on attainable latent distributions can also make the KL-optimal and variance-optimal policies differ.</li>
+<li><strong>Temporal extension:</strong> when should the encoder and latent prior also use memory, and which information should that memory contain?</li>
+</ul>
+</section>
+<section id="evidence-and-source-coverage" class="level2">
+<h2 class="anchored" data-anchor-id="evidence-and-source-coverage">Evidence and source coverage</h2>
+<p>The biological coding-cost interpretation, learned-prior mechanism, and aesthetic synthesis are model hypotheses. Empirical findings and mathematical identities support components without establishing the complete account.</p>
+<p>The account brings together theories of perceptual compression, representation learning, and intrinsic reward. Further literature analysis is needed to establish its precise relationship to existing theories of aesthetics and to assess the biological interpretation of its information cost.</p>
+<p><strong>Topics:</strong> computational aesthetics; attention; reinforcement learning; intrinsic reward; learning progress; rate–distortion; perceptual representation; mutual information; latent density learning.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-alain2016" class="csl-entry" role="listitem">
+Alain, Guillaume, Alex Lamb, Chinnadhurai Sankar, Aaron Courville, and Yoshua Bengio. 2016. <em>Variance Reduction in <span>SGD</span> by Distributed Importance Sampling</em>. <a href="https://doi.org/10.48550/arXiv.1511.06481">https://doi.org/10.48550/arXiv.1511.06481</a>.
+</div>
+<div id="ref-alemi2018" class="csl-entry" role="listitem">
+Alemi, Alexander, Ben Poole, Ian Fischer, Joshua Dillon, Rif A. Saurous, and Kevin Murphy. 2018. <span>“Fixing a <span>Broken</span> <span>ELBO</span>.”</span> <em>Proceedings of the 35th <span>International</span> <span>Conference</span> on <span>Machine</span> <span>Learning</span></em>, July, 159–68. <a href="https://proceedings.mlr.press/v80/alemi18a.html">https://proceedings.mlr.press/v80/alemi18a.html</a>.
+</div>
+<div id="ref-brielmann2022" class="csl-entry" role="listitem">
+Brielmann, Aenne A., and Peter Dayan. 2022. <span>“A Computational Model of Aesthetic Value.”</span> <em>Psychological Review</em> 129 (6): 1319–37. <a href="https://doi.org/10.1037/rev0000337">https://doi.org/10.1037/rev0000337</a>.
+</div>
+<div id="ref-halvagal2023" class="csl-entry" role="listitem">
+Halvagal, Manu Srinath, and Friedemann Zenke. 2023. <span>“The Combination of <span>Hebbian</span> and Predictive Plasticity Learns Invariant Object Representations in Deep Sensory Networks.”</span> <em>Nature Neuroscience</em> 26 (11): 1906–15. <a href="https://doi.org/10.1038/s41593-023-01460-y">https://doi.org/10.1038/s41593-023-01460-y</a>.
+</div>
+<div id="ref-hu2025" class="csl-entry" role="listitem">
+Hu, Edward S., Jie Wang, Xingfang Yuan, et al. 2025. <span>“Real-World Reinforcement Learning of Active Perception Behaviors.”</span> <em>Advances in Neural Information Processing Systems</em>. <a href="https://arxiv.org/abs/2512.01188">https://arxiv.org/abs/2512.01188</a>.
+</div>
+<div id="ref-lai2025" class="csl-entry" role="listitem">
+Lai, Lucy, Ann Z. X. Huang, and Samuel J. Gershman. 2025. <span>“Action Chunking as Conditional Policy Compression.”</span> <em>Cognition</em> 264 (November): 106201. <a href="https://doi.org/10.1016/j.cognition.2025.106201">https://doi.org/10.1016/j.cognition.2025.106201</a>.
+</div>
+<div id="ref-schmidhuber2009" class="csl-entry" role="listitem">
+Schmidhuber, Juergen. 2009. <em>Driven by <span>Compression</span> <span>Progress</span>: <span>A</span> <span>Simple</span> <span>Principle</span> <span>Explains</span> <span>Essential</span> <span>Aspects</span> of <span>Subjective</span> <span>Beauty</span>, <span>Novelty</span>, <span>Surprise</span>, <span>Interestingness</span>, <span>Attention</span>, <span>Curiosity</span>, <span>Creativity</span>, <span>Art</span>, <span>Science</span>, <span>Music</span>, <span>Jokes</span></em>. arXiv. <a href="https://doi.org/10.48550/arXiv.0812.4360">https://doi.org/10.48550/arXiv.0812.4360</a>.
+</div>
+<div id="ref-sims2016" class="csl-entry" role="listitem">
+Sims, Chris R. 2016. <span>“Rate–Distortion Theory and Human Perception.”</span> <em>Cognition</em> 152 (July): 181–98. <a href="https://doi.org/10.1016/j.cognition.2016.03.020">https://doi.org/10.1016/j.cognition.2016.03.020</a>.
+</div>
+<div id="ref-weng2024" class="csl-entry" role="listitem">
+Weng, Zehang, Peng Zhou, Hang Yin, et al. 2024. <em>Interactive Perception for Deformable Object Manipulation</em>. <a href="https://doi.org/10.48550/arXiv.2403.05177">https://doi.org/10.48550/arXiv.2403.05177</a>.
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/mulfordlab\.exe\.xyz\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
