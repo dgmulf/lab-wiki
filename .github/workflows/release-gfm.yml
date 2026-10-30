@@ -36,6 +36,11 @@ jobs:
         with:
           version: '0.23.3'
 
+      - name: Install R system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libuv1-dev pkg-config
+
       - name: Restore locked dependencies
         run: |
           uv sync --locked
