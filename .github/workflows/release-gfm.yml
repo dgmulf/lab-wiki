@@ -1,0 +1,74 @@
+name: Release GFM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-gfm
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      # Use rv's library explicitly, without depending on a local .Rprofile.
+      R_PROFILE_USER: /dev/null
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: '3.14'
+          enable-cache: true
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.6'
+
+      - uses: a2-ai/setup-rv@v1
+        with:
+          version: '0.23.3'
+
+      - name: Restore locked dependencies
+        run: |
+          uv sync --locked
+          rv sync --locked
+          echo "R_LIBS_USER=$GITHUB_WORKSPACE/$(rv library)" >> "$GITHUB_ENV"
+
+      - name: Render Markdown and figures
+        run: uv run --locked quarto render --profile gfm --to gfm
+
+      - name: Package rendered wiki
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > _release/gfm/COMMIT.txt
+          tar -czf _release/lab-wiki-gfm.tar.gz -C _release/gfm .
+
+      - name: Update continuous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > _release/notes.md <<EOF
+          GitHub Flavored Markdown and generated figures from commit $GITHUB_SHA.
+
+          Download and extract lab-wiki-gfm.tar.gz, then start at index.md.
+          This rolling prerelease is updated on every push to main.
+          EOF
+          if gh release view continuous > /dev/null 2>&1; then
+            gh release upload continuous _release/lab-wiki-gfm.tar.gz --clobber
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/continuous" \
+              -f sha="$GITHUB_SHA" -F force=true
+            gh release edit continuous --title 'Continuous GFM build' \
+              --prerelease --notes-file _release/notes.md
+          else
+            gh release create continuous _release/lab-wiki-gfm.tar.gz \
+              --target "$GITHUB_SHA" --title 'Continuous GFM build' \
+              --prerelease --latest=false --notes-file _release/notes.md
+          fi

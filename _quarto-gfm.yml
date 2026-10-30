@@ -1,0 +1,8 @@
+project:
+  type: default
+  output-dir: _release/gfm
+
+format: gfm
+
+filters:
+  - filters/gfm-links.lua
