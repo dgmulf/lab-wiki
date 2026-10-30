@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: '3.14'
           enable-cache: true
@@ -32,7 +32,7 @@ jobs:
         with:
           r-version: '4.6'
 
-      - uses: a2-ai/setup-rv@v1
+      - uses: a2-ai/setup-rv@dd7424cb4da09c619fc3eee02e19dc75b242ab4f # v1.0.0
         with:
           version: '0.23.3'
 
