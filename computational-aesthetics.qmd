@@ -419,6 +419,15 @@ or measure the actual reduction in prior mismatch over an update interval.
 
 ### Candidate estimator: running latent feature averages {#sec-feature-ema}
 
+We propose an online, context-conditioned adaptation of **least-squares
+importance fitting (LSIF)** [@kanamori2009, sec. 2.2]. LSIF estimates a density
+ratio directly using a model linear in features and a squared-error objective.
+Here, the coefficients depend on context, and an exponential moving average of
+ongoing experience replaces the target feature sample mean. These online and
+context-dependent choices, and the estimator's use in aesthetic reward and prior
+learning, are our proposed adaptation rather than results established by that
+paper.
+
 The online target is the **marginal of ongoing experience**, averaged over
 contexts. For a given policy and context distribution $\mu_\pi$, define
 
@@ -481,7 +490,8 @@ $$
 
 #### Learning the ratio
 
-At fixed $c$, consider the population objective
+At fixed $c$, use the LSIF population objective [@kanamori2009, eq. 2], with
+$q_\pi(\cdot\mid c)$ as the denominator distribution and $p$ as the numerator:
 
 $$
   \mathcal L_c(w)
