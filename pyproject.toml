@@ -11,3 +11,8 @@ dependencies = [
     "pyyaml>=6.0.3",
     "quarto-cli>=1.10.19",
 ]
+
+[dependency-groups]
+dev = [
+    "jupyter-cache>=1.0.1",
+]

@@ -50,6 +50,17 @@ jobs:
       - name: Render Markdown and figures
         run: uv run --locked quarto render --profile gfm --to gfm
 
+      - name: Render website using cached computations
+        run: uv run --locked quarto render --profile pages --to html
+
+      - name: Save website for Pages deployment
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pages-site
+          path: _site/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Package rendered wiki
         run: |
           printf '%s\n' "$GITHUB_SHA" > _release/gfm/COMMIT.txt

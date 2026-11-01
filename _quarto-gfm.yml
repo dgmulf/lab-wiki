@@ -4,5 +4,8 @@ project:
 
 format: gfm
 
+execute:
+  cache: true
+
 filters:
   - filters/gfm-links.lua

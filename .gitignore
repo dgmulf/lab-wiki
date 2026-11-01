@@ -1,5 +1,7 @@
 /_site/
 /_release/
+/.jupyter_cache/
+/*_cache/
 /.quarto/
 /mise.toml
 

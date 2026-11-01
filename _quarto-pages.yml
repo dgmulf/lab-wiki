@@ -1,0 +1,7 @@
+website:
+  site-url: https://dgmulf.github.io/lab-wiki/
+
+execute:
+  cache: true
+  # Match GFM's image format so Jupyter can reuse the same executed notebooks.
+  fig-format: png
