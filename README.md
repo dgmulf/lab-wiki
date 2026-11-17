@@ -2,6 +2,18 @@
 
 Research notes built with [Quarto](https://quarto.org/).
 
+## Prepare a checkout
+
+Delta runs `.agents/prepare` automatically in new local managed checkouts.
+With uv, rv, and Node.js/npm installed, you can also run it from the repository root:
+
+```sh
+./.agents/prepare
+```
+
+It restores the locked Python and R dependencies and installs the project skills.
+Preparation stops if any command fails.
+
 ## Render locally
 
 Install Python 3.14, R 4.6, [uv](https://docs.astral.sh/uv/), and
