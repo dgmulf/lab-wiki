@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -eu
+
+# Delta Cloud Runners use Debian Bookworm on x86-64.
+if [ "$(uname -s)" != Linux ] || [ "$(uname -m)" != x86_64 ]; then
+    echo ".delta/setup requires a Linux x86-64 Cloud Runner." >&2
+    exit 1
+fi
+
+as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo -n "$@"
+    fi
+}
+
+cd "$(dirname "$0")/.."
+export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
+
+as_root env DEBIAN_FRONTEND=noninteractive apt-get update
+as_root env DEBIAN_FRONTEND=noninteractive apt-get install --yes \
+    ca-certificates curl xz-utils build-essential gfortran \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev pkg-config
+
+downloads=$(mktemp -d)
+trap 'rm -rf "$downloads"' EXIT
+
+# Download before executing so a failed transfer cannot be hidden by a pipe.
+curl -fsSL https://astral.sh/uv/install.sh -o "$downloads/uv-install.sh"
+as_root env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \
+    sh "$downloads/uv-install.sh"
+
+# Match the rv release used by the release workflow.
+curl -fsSL \
+    https://github.com/A2-ai/rv/releases/download/v0.23.3/rv-v0.23.3-x86_64-unknown-linux-gnu.tar.gz \
+    -o "$downloads/rv.tar.gz"
+tar -xzf "$downloads/rv.tar.gz" -C "$downloads"
+as_root install -m 755 "$downloads/rv" /usr/local/bin/rv
+
+curl -fsSL \
+    https://github.com/r-lib/rig/releases/download/latest/rig-linux-x86_64-latest.tar.gz \
+    -o "$downloads/rig.tar.gz"
+as_root tar -xzf "$downloads/rig.tar.gz" -C /usr/local
+
+# Read the requested R series from the project rather than duplicating it here.
+uv python install 3.14
+r_version=$(uv run --no-project --python 3.14 python -c \
+    'import tomllib; print(tomllib.load(open("rproject.toml", "rb"))["project"]["r_version"])')
+as_root rig add --without-pak --json "$r_version" > "$downloads/r.json"
+r_name=$(uv run --no-project --python 3.14 python -c \
+    'import json, sys; print(json.load(open(sys.argv[1]))["name"])' "$downloads/r.json")
+as_root rig default "$r_name"
+
+# Debian's bundled Node/npm can be too old for the current skills CLI.
+# Install the latest Node LTS, then explicitly update npm to its latest release.
+curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n -o "$downloads/n"
+as_root bash "$downloads/n" lts
+as_root /usr/local/bin/npm install --global npm@latest
+
+# Sync as the runner user, not root: its default uv/rv caches are retained in
+# Delta's machine snapshot and reused by subsequent checkout preparation.
+export R_PROFILE_USER=/dev/null
+LAB_WIKI_CLOUD_TOOLS_READY=1 ./.delta/prepare

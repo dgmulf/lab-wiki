@@ -4,15 +4,28 @@ Research notes built with [Quarto](https://quarto.org/).
 
 ## Prepare a checkout
 
-Delta runs `.agents/prepare` automatically in new local managed checkouts.
+Delta runs `.delta/prepare` automatically in new local managed checkouts.
 With uv, rv, and Node.js/npm installed, you can also run it from the repository root:
 
 ```sh
-./.agents/prepare
+./.delta/prepare
 ```
 
 It restores the locked Python and R dependencies and installs the project skills.
 Preparation stops if any command fails.
+
+### Cloud Runners
+
+`.delta/setup` provisions Delta's Debian 12 x86-64 Cloud Runner with uv,
+Python 3.14, rv (matching CI), the R version in `rproject.toml`, and the native
+build dependencies. It installs the latest Node LTS and updates npm before
+running checkout preparation non-interactively.
+
+The locked dependency syncs populate the runner user's default uv and rv caches,
+which Delta retains in its post-setup machine snapshot. Cloud `prepare` defers
+to `setup` because Delta invokes it before the toolchains are installed.
+Setup requires network access and root or passwordless sudo; it is intended
+for the disposable runner, not a local workstation.
 
 ## Render locally
 

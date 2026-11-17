@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -eu
+
+# Cloud Runners call prepare before setup has installed the toolchains.
+# setup calls us again once those tools are available.
+if command -v delta-runner >/dev/null 2>&1 &&
+    [ "${LAB_WIKI_CLOUD_TOOLS_READY:-0}" != 1 ]; then
+    echo "Deferring checkout preparation to .delta/setup."
+    exit 0
+fi
+
+uv sync --locked
+rv sync --locked
+npx --yes skills experimental_install
