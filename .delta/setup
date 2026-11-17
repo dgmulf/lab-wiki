@@ -27,6 +27,16 @@ as_root env DEBIAN_FRONTEND=noninteractive apt-get install --yes \
 downloads=$(mktemp -d)
 trap 'rm -rf "$downloads"' EXIT
 
+# Install Mise for the runner user. Interactive terminals must activate it:
+# exporting variables in setup alone would not affect later shell processes.
+curl -fsSL https://mise.run -o "$downloads/mise-install.sh"
+MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh "$downloads/mise-install.sh"
+activation='eval "$("$HOME/.local/bin/mise" activate bash)"'
+if ! grep -Fqx "$activation" "$HOME/.bashrc"; then
+    printf '\n# Activate project environments (including lab-wiki).\n%s\n' \
+        "$activation" >> "$HOME/.bashrc"
+fi
+
 # Download before executing so a failed transfer cannot be hidden by a pipe.
 curl -fsSL https://astral.sh/uv/install.sh -o "$downloads/uv-install.sh"
 as_root env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 \

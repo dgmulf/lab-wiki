@@ -3,7 +3,6 @@
 /.jupyter_cache/
 /*_cache/
 /.quarto/
-/mise.toml
 
 **/*.quarto_ipynb
 .zed/

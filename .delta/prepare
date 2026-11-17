@@ -10,6 +10,16 @@ if command -v delta-runner >/dev/null 2>&1 &&
     exit 0
 fi
 
-uv sync --locked
-rv sync --locked
-npx --yes skills experimental_install
+cd "$(dirname "$0")/.."
+export PATH="$HOME/.local/bin:$PATH"
+if ! command -v mise >/dev/null 2>&1; then
+    echo "Install Mise and activate it in your shell before running .delta/prepare." >&2
+    exit 1
+fi
+
+# Trust only this checkout's configuration, then use the same environment
+# that Mise supplies to interactive shells.
+mise trust "$PWD/mise.toml"
+mise exec -- uv sync --locked
+mise exec -- rv sync --locked
+mise exec -- npx --yes skills experimental_install

@@ -5,7 +5,7 @@ Research notes built with [Quarto](https://quarto.org/).
 ## Prepare a checkout
 
 Delta runs `.delta/prepare` automatically in new local managed checkouts.
-With uv, rv, and Node.js/npm installed, you can also run it from the repository root:
+With Mise, uv, rv, and Node.js/npm installed, you can also run it from the repository root:
 
 ```sh
 ./.delta/prepare
@@ -16,10 +16,11 @@ Preparation stops if any command fails.
 
 ### Cloud Runners
 
-`.delta/setup` provisions Delta's Debian 12 x86-64 Cloud Runner with uv,
+`.delta/setup` provisions Delta's Debian 12 x86-64 Cloud Runner with Mise, uv,
 Python 3.14, rv (matching CI), the R version in `rproject.toml`, and the native
 build dependencies. It installs the latest Node LTS and updates npm before
-running checkout preparation non-interactively.
+running checkout preparation non-interactively. It enables Mise activation in
+Bash so new terminals automatically load the project's Python and R environment.
 
 The locked dependency syncs populate the runner user's default uv and rv caches,
 which Delta retains in its post-setup machine snapshot. Cloud `prepare` defers
@@ -29,26 +30,28 @@ for the disposable runner, not a local workstation.
 
 ## Render locally
 
-Install Python 3.14, R 4.6, [uv](https://docs.astral.sh/uv/), and
+Install and [activate Mise](https://mise.jdx.dev/getting-started.html#activate-mise),
+Python 3.14, R 4.6, [uv](https://docs.astral.sh/uv/), and
 [rv](https://a2-ai.github.io/rv-docs/), then restore dependencies:
 
 ```sh
-uv sync --locked
-rv sync --locked
+./.delta/prepare
 ```
 
-Quarto and Jupyter are included in the locked Python environment. Use rv's R
-library when rendering:
+Quarto and Jupyter are included in the locked Python environment. The checked-in
+`mise.toml` adds that environment to `PATH` and selects rv's R library
+automatically in activated shells:
 
 ```sh
-export R_LIBS_USER="$PWD/$(rv library)"
-uv run --locked quarto render
+quarto render
 ```
+
+Without shell activation (for example in scripts), use `mise exec -- quarto render`.
 
 To generate GitHub Flavored Markdown and figures in `_release/gfm/`:
 
 ```sh
-uv run --locked quarto render --profile gfm --to gfm
+quarto render --profile gfm --to gfm
 ```
 
 The GFM profile uses a document project instead of the website layout and rewrites
@@ -57,7 +60,7 @@ links between `.qmd` pages to `.md`, preserving anchors.
 To render the GitHub Pages website locally:
 
 ```sh
-uv run --locked quarto render --profile pages --to html
+quarto render --profile pages --to html
 ```
 
 ## Continuous release

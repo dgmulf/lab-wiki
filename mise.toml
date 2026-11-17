@@ -1,0 +1,6 @@
+[env]
+# uv owns the virtualenv; preparation restores it before rendering.
+_.path = ["{{config_root}}/.venv/bin"]
+VIRTUAL_ENV = "{{config_root}}/.venv"
+# Ask rv rather than hard-coding its R/platform-specific library layout.
+R_LIBS_USER = "{{config_root}}/{{exec(command='rv library')}}"
