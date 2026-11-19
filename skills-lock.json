@@ -1,11 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "quarto-authoring": {
       "source": "posit-dev/skills",
+      "commit": "951959403f4ecc9d0274adf35538fc67153b6f31",
       "sourceType": "github",
       "skillPath": "quarto/quarto-authoring/SKILL.md",
-      "computedHash": "24ae1cc561222b945dea7b7b6a6be35f19e9238da8699251202c9715efb5d1cc"
+      "computedHash": "ea23ceb3855b942e139e654fca10d295655cccaba506b06a8950b3ebfb8de4e4"
     }
   }
 }
