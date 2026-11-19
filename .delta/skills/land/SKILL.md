@@ -28,6 +28,13 @@ cannot be satisfied.
    `git push local <candidate-sha>:refs/heads/main`. Use no force or bypass
    flags. If the first push fails, do not attempt the second. Use non-interactive
    authentication; if it is unavailable, report the blocker.
+
+   Delta's `local` remote supports pushing to a checked-out branch: it updates
+   a clean checkout in place and rejects pushes that would overwrite
+   uncommitted edits. A checked-out `main` or an unset
+   `receive.denyCurrentBranch` is not a blocker by itself. Use the normal push
+   and report any actual rejection without switching branches or changing Git
+   configuration.
 3. Read back the exact `refs/heads/main` from each push destination and confirm
    both reached the candidate commit. If a ref advanced again after a push,
    verify the candidate is in that ref's history and report the newer tip
