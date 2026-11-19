@@ -1,48 +1,73 @@
 name: Publish GitHub Pages
 
 on:
-  workflow_run:
-    workflows: [Release GFM]
+  push:
     branches: [main]
-    types: [completed]
+  workflow_dispatch:
 
-permissions:
-  actions: read
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 concurrency:
   group: github-pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+  build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+    env:
+      # Use rv's library explicitly, without depending on a local .Rprofile.
+      R_PROFILE_USER: /dev/null
+      MPLBACKEND: Agg
     steps:
-      - name: Download website from the successful release build
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+      - uses: actions/checkout@v7
         with:
-          name: pages-site
-          path: _site
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
+          persist-credentials: false
 
-      - name: Configure Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.14'
+          enable-cache: true
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.6'
+
+      - uses: a2-ai/setup-rv@dd7424cb4da09c619fc3eee02e19dc75b242ab4f # v1.0.0
+        with:
+          version: '0.23.3'
+
+      - name: Install R system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libuv1-dev pkg-config
+
+      - name: Restore locked dependencies
+        run: |
+          uv sync --locked
+          rv sync --locked
+          echo "R_LIBS_USER=$GITHUB_WORKSPACE/$(rv library)" >> "$GITHUB_ENV"
+
+      - name: Render website
+        run: uv run --locked quarto render --profile pages --to html
 
       - name: Prepare Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: _site
+          path: _site/
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
