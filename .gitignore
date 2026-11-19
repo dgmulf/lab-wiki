@@ -5,6 +5,11 @@
 /.quarto/
 /mise.toml
 
+/.venv/
+/.agents/
+/.claude/
+/.goose/
+
 **/*.quarto_ipynb
 .zed/
 .codex/environments/
