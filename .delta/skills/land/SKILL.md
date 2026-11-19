@@ -34,5 +34,4 @@ cannot be satisfied.
    rather than claiming both tips match. If only one push succeeded, name the
    destination that changed and explain why the other did not; do not try to
    roll back the successful push. If neither destination was updated, report
-   that the change was not merged and explain the blocker. Report any Pages
-   deployment status separately from the Git result.
+   that the change was not merged and explain the blocker.
