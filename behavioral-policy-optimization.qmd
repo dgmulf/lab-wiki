@@ -1,7 +1,74 @@
 ---
 title: "Behavioral policy optimization"
-nocite: '@papini2024'
 ---
+
+Behavioral policy optimization (BPO) changes how an agent collects data, not
+which gradient it wants to estimate. In trajectory-based BPO [@papini2024],
+one draw is a complete trajectory. More generally, one draw can be any variable
+$X$ whose probability mass or density we can evaluate and from which we compute
+a gradient contribution $g(X)$.
+
+## What counts as one draw?
+
+Let $p(x)$ be the fixed reference distribution and
+$\mu=\mathbb E_p[g(X)]$ the gradient we want to estimate. Write $q_\beta(x)$
+for the distribution of $X$ induced by the behavioral policy $\beta$ and the
+**sampling protocol**: how a run starts, when it is observed or stopped, and
+what is recorded as one draw.
+
+- For an immediate sensory observation recorded at stationarity, $q_\beta$ is
+  the stationary distribution of observations under $\beta$. Recording the
+  observation just after reset generally gives a different distribution.
+- For trajectory-based BPO, set $X=\tau$. Then $p(\tau)$ and $q_\beta(\tau)$
+  are the trajectory distributions under the target and behavioral policies,
+  respectively, given the initial-state distribution and stopping rule. No
+  stationarity assumption is needed.
+
+## Which draws reduce variance?
+
+If we sample $X$ from a proposal $q$ instead of $p$, the importance-weighted
+estimate is $Y=p(X)g(X)/q(X)$. Its expectation is still $\mu$, provided $q$
+is positive wherever $p(x)\|g(x)\|_2$ is positive. To minimize the sum of the
+component variances of $Y$, it suffices to minimize its second moment:
+$\mathbb E_q[\|Y\|_2^2]$, since $\|\mu\|_2^2$ is fixed. By Cauchy–Schwarz,
+this second moment is at least $(\mathbb E_q[\|Y\|_2])^2$, with equality when
+the weighted estimate has constant norm. The proposal that achieves this is
+$$
+q^*(x)=\frac{p(x)\|g(x)\|_2}{\mathbb E_p[\|g(X)\|_2]},
+$$
+assuming the denominator is finite and nonzero. Relative to the reference
+distribution, this proposal samples inputs with large gradient contributions
+more often and compensates by giving each such draw less weight.
+
+This result treats $g(x)$ as fixed once $x$ is known. If the contribution $G$
+is still random given $X$, and changing the policy leaves its conditional law
+given $X$ unchanged, the optimal factor in place of $\|g(x)\|_2$ is
+$\sqrt{\mathbb E[\|G\|_2^2\mid X=x]}$.
+
+## Fitting the behavioral policy
+
+Fit $q_\beta$ to the optimal proposal by minimizing the cross-entropy **from
+$q^*$ to $q_\beta$**, namely $-\mathbb E_{q^*}[\log q_\beta(X)]$.
+For reference observations $x_1,\ldots,x_n$ sampled from $p$, the resulting
+empirical objective, up to a positive factor independent of $\beta$, is
+$$
+\underset{\beta}{\operatorname{minimize}}\quad
+-\sum_{i=1}^n \|g(x_i)\|_2\,\log q_\beta(x_i).
+$$
+The sample frequencies supply the empirical distribution of $X$; each draw's
+gradient norm supplies its additional weight. If the policy family can realize
+$q^*$, minimizing the population cross-entropy recovers the single-draw
+optimum. Otherwise it finds the closest realizable proposal in forward KL
+divergence, $D_{\mathrm{KL}}(q^*\|q_\beta)$, which need not be the policy with
+the lowest variance.
+
+The variance above is for **one draw**, without conditioning on the history
+that led to it. The same proposal is optimal for an average of independent,
+identically distributed draws, whose variance is the single-draw variance
+divided by the number of draws. For consecutive observations at stationarity,
+the variance of the average also depends on temporal covariances. With correct
+importance weights, correlation does not bias a fixed-length average, but
+matching the stationary distribution alone need not minimize its variance.
 
 ## References
 
