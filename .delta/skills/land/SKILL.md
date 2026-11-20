@@ -19,14 +19,10 @@ cannot be satisfied.
 
 1. Confirm `origin` pushes to the intended GitHub repository and `local`
    pushes to the intended source repository. Fetch `origin/main` and record its tip.
-   Check the rules that apply to GitHub `main`, including branch protection and
-   rulesets. Stop if you cannot verify the rules or if they require a pull
-   request, queue, review, signing, or other gate you cannot satisfy through
-   this direct-push workflow. Do not use bypass privileges.
 2. Push the exact verified commit first to `origin` and then to `local`, using
    `git push origin <candidate-sha>:refs/heads/main` and
    `git push local <candidate-sha>:refs/heads/main`. Use no force or bypass
-   flags. If the first push fails, do not attempt the second. Use non-interactive
+   flags unless explicitly requested. Use non-interactive
    authentication; if it is unavailable, report the blocker.
 
    Delta's `local` remote supports pushing to a checked-out branch: it updates
@@ -35,6 +31,7 @@ cannot be satisfied.
    `receive.denyCurrentBranch` is not a blocker by itself. Use the normal push
    and report any actual rejection without switching branches or changing Git
    configuration.
+
 3. Read back the exact `refs/heads/main` from each push destination and confirm
    both reached the candidate commit. If a ref advanced again after a push,
    verify the candidate is in that ref's history and report the newer tip
