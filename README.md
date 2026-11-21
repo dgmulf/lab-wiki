@@ -62,8 +62,13 @@ see the existing pages for examples.
 ./scripts/wiki build
 ```
 
-The static website is written to `_site/`. It includes all CSS and figure assets,
-with native MathML equations and no external font or math-script dependency.
+The static website is written to `_site/`. It includes CSS, figures, and local
+webfonts. Articles use Libertinus Serif, and native MathML equations use
+Libertinus Math, with no external font or math-script dependency.
+The WOFF2 files in `assets/fonts/` are from
+[Libertinus v7.050](https://github.com/alerque/libertinus/releases/tag/v7.050)
+and ship with the [SIL Open Font License](assets/fonts/OFL.txt). When updating
+the fonts, check that the Math WOFF2 retains its OpenType `MATH` table.
 
 ## Reproduce the research figure
 

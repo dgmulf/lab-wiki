@@ -9,3 +9,14 @@
   #bibliography("references.bib", title: none, style: "apa")
 ]) <references-doc>
 #asset("style.css", read("assets/style.css", encoding: none))
+#for name in (
+  "LibertinusSerif-Regular.woff2",
+  "LibertinusSerif-Italic.woff2",
+  "LibertinusSerif-Bold.woff2",
+  "LibertinusSerif-BoldItalic.woff2",
+  "LibertinusMath-Regular.woff2",
+  "OFL.txt",
+) {
+  let path = "fonts/" + name
+  asset(path, read("assets/" + path, encoding: none))
+}

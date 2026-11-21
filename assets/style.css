@@ -1,10 +1,40 @@
+@font-face {
+  font-family: "Libertinus Serif";
+  src: url("fonts/LibertinusSerif-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libertinus Serif";
+  src: url("fonts/LibertinusSerif-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libertinus Serif";
+  src: url("fonts/LibertinusSerif-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libertinus Serif";
+  src: url("fonts/LibertinusSerif-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Libertinus Math";
+  src: url("fonts/LibertinusMath-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+
 :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.65; color: #243140; background: #fafbf9; }
 body { margin: 0; }
 header, main, footer { max-width: 64rem; margin: auto; padding: 1.5rem clamp(1rem, 4vw, 3rem); }
 header { border-bottom: 1px solid #ccd4da; }
 header > a { font-size: 1.5rem; font-weight: 750; text-decoration: none; }
 header nav { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: .8rem; font-size: .9rem; }
-main { max-width: 52rem; min-height: 60vh; }
+main { max-width: 52rem; min-height: 60vh; font-family: "Libertinus Serif", serif; }
 a { color: #17618b; text-underline-offset: .18em; overflow-wrap: anywhere; }
 h1, h2, h3, h4 { line-height: 1.25; scroll-margin-top: 1rem; }
 h1 { font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -.025em; }
@@ -14,6 +44,7 @@ p, li { max-width: 80ch; }
 li + li { margin-top: .4rem; }
 figure { margin: 2rem 0; }
 img, svg { max-width: 100%; height: auto; }
+math { font-family: "Libertinus Math", math, serif; }
 math[display="block"] { overflow-x: auto; padding: .5rem 0; }
 figcaption, footer { font-size: .9rem; color: #536375; }
 table { border-collapse: collapse; width: 100%; }
