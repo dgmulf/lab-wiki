@@ -1,68 +1,93 @@
 # Research Wiki
 
-Research notes built with [Quarto](https://quarto.org/).
+Research notes authored in [Typst](https://typst.app/), published as a multi-page
+HTML website at <https://dgmulf.github.io/lab-wiki/>.
 
-## Render locally
+## Preview any worktree
 
-Install Python 3.14, R 4.6, [uv](https://docs.astral.sh/uv/), and
-[rv](https://a2-ai.github.io/rv-docs/), then restore dependencies:
-
-```sh
-uv sync --locked
-rv sync --locked
-```
-
-Quarto and Jupyter are included in the locked Python environment. Use rv's R
-library when rendering:
+Install Docker Engine and Docker Compose v2. From any checkout or Git worktree:
 
 ```sh
-export R_LIBS_USER="$PWD/$(rv library)"
-uv run --locked quarto render
+./scripts/wiki dev
+./scripts/wiki url
+./scripts/wiki logs
+./scripts/wiki stop
 ```
 
-To generate GitHub Flavored Markdown and figures in `_release/gfm/`:
+`dev` builds a small image based on the official
+[`ghcr.io/typst/typst:0.15.1`](https://github.com/typst/typst/pkgs/container/typst)
+image, mounts **that worktree** at `/work`, and starts Typst's live-reloading
+server. Open the printed port at `http://localhost:PORT`. Edit a `.typ` file,
+`references.bib`, or `assets/style.css`; Typst rebuilds and reloads the browser.
+Compilation errors appear in `logs`; the last successful build remains served.
+Output goes to that worktree's ignored `_site/` directory and uses your user ID.
+No local Typst, Python, R, Node, or Pandoc installation is needed to preview/build.
+
+Each worktree gets a Compose project name derived from its absolute path and a
+Docker-assigned host port by default, so checkouts with identical directory names
+can run simultaneously. The script works from any working directory, including
+hidden worktree paths. No container names or shared output volumes are fixed.
+
+To choose a port (use a different one for each running worktree):
 
 ```sh
-uv run --locked quarto render --profile gfm --to gfm
+WIKI_PORT=3987 ./scripts/wiki dev
 ```
 
-The GFM profile uses a document project instead of the website layout and rewrites
-links between `.qmd` pages to `.md`, preserving anchors.
+On exe.dev, choose a port between 3000 and 9999 and open
+`https://YOUR-VM.exe.xyz:3987/`; the documented proxy supports these alternate
+ports for users with VM access. See [proxy documentation](https://exe.dev/docs/proxy.md).
+The default bind address is `0.0.0.0` to support VM access. For local-only access,
+use `WIKI_BIND=127.0.0.1 ./scripts/wiki dev`.
 
-To render the GitHub Pages website locally:
+Typst binds its own server to container loopback. The image adds `socat` to
+forward container port 8080 to it; Docker publishes that port on the host.
+The compiler image is pinned by version and digest. Typst's HTML and bundle
+exports are **experimental**; inspect the site when upgrading the compiler.
+
+## Author and build
+
+- `pages/*.typ` contains the wiki's research content in native Typst syntax.
+- `wiki.typ` declares the output pages and the shared bibliography.
+- `template.typ` and `assets/style.css` provide navigation and presentation.
+- `references.bib` contains the cited literature; citations link to the shared
+  References page. Page links are relative, so the site works under `/lab-wiki/`.
+
+Add a page under `pages/`, register its `document` in `wiki.typ`, and add navigation
+where appropriate. Use unique labels across the bundle. Native Typst equations
+use `$...$` inline and whitespace inside the delimiters for display equations;
+see the existing pages for examples.
 
 ```sh
-uv run --locked quarto render --profile pages --to html
+./scripts/wiki build
 ```
 
-## Continuous release
+The static website is written to `_site/`. It includes all CSS and figure assets,
+with native MathML equations and no external font or math-script dependency.
 
-[Release GFM](.github/workflows/release-gfm.yml) renders on every push to `main`
-and can also be run manually from the repository's Actions tab on `main`.
-It restores both lockfiles, executes the Python and R plots, and updates the
-[`continuous` prerelease](https://github.com/dgmulf/lab-wiki/releases/tag/continuous).
-The workflow uses GitHub's built-in token with `contents: write`; no additional
-secret is required. The rolling release requires mutable releases in the repository.
+## Reproduce the research figure
 
-Download **lab-wiki-gfm.tar.gz** from that release and extract it. Start at
-`index.md`; keep the figure directories beside the Markdown files. `COMMIT.txt`
-identifies the source commit. The release's automatically generated source
-archives contain the original project; the attached tarball contains the rendered
-wiki.
+The rate–distortion figure is committed as SVG so ordinary builds need only
+Docker. Its Python source retains the original finite-distribution assertions
+at zero distortion, distortion 0.18, and zero information. To regenerate it with
+[uv](https://docs.astral.sh/uv/):
 
-## GitHub Pages
+```sh
+MPLBACKEND=Agg uv run --locked scripts/rate-distortion-prior.py
+```
 
-The website is published at <https://dgmulf.github.io/lab-wiki/>.
-The release workflow renders both GFM and HTML in the same job, sharing dependency
-installation and Python execution results through Jupyter Cache. R uses knitr's
-format-specific cache, so its plots may execute once per output format.
-Caches live within each build; a new release build starts fresh.
+Commit both the script and regenerated SVG when changing the example. Python's
+locked NumPy/Matplotlib dependencies are only for this optional step.
 
-The [Pages workflow](.github/workflows/publish-pages.yml) runs after a successful
-release build on `main`. It downloads that exact run's `pages-site` artifact and
-deploys it without installing Python or R or executing any code. To rebuild and
-redeploy manually, run **Release GFM** from the Actions tab on `main`.
+## Continuous release and GitHub Pages
 
-The repository's **Settings → Pages → Build and deployment → Source** must be
-**GitHub Actions**. The `pages` profile sets the GitHub Pages URL for the sitemap;
-the default profile retains the existing website URL.
+[Release wiki](.github/workflows/release-wiki.yml) builds on every push to `main`
+and on manual dispatch, using the same Docker compiler as local builds. It
+updates the `continuous` prerelease with `lab-wiki-html.tar.gz` and uploads the
+exact site as a `pages-site` artifact. Extract the archive and open `index.html`;
+`COMMIT.txt` identifies the source commit.
+
+[Publish GitHub Pages](.github/workflows/publish-pages.yml) deploys that artifact
+after a successful release build. Set the repository's **Settings → Pages →
+Build and deployment → Source** to **GitHub Actions**. Pull requests also compile
+the bundle through [Check wiki](.github/workflows/check.yml).

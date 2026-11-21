@@ -1,18 +1,6 @@
 [project]
-name = "lab-wiki"
+name = "lab-wiki-figures"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-authors = [{ name = "Danny Mulford", email = "dgmulf@gmail.com" }]
-requires-python = ">=3.14"
-dependencies = [
-    "matplotlib>=3.11.2",
-    "numpy>=2.5.4",
-    "pyyaml>=6.0.3",
-    "quarto-cli>=1.10.19",
-]
-
-[dependency-groups]
-dev = [
-    "jupyter-cache>=1.0.1",
-]
+description = "Reproducible research figures for the Typst wiki"
+requires-python = ">=3.12"
+dependencies = ["matplotlib>=3.11.2", "numpy>=2.5.4"]

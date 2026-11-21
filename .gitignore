@@ -1,10 +1,7 @@
 /_site/
 /_release/
-/.jupyter_cache/
-/*_cache/
-/.quarto/
+/.venv/
+__pycache__/
 /mise.toml
-
-**/*.quarto_ipynb
 .zed/
 .codex/environments/

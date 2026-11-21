@@ -1,0 +1,13 @@
+services:
+  wiki:
+    build: .
+    user: "${WIKI_UID:-1000}:${WIKI_GID:-1000}"
+    working_dir: /work
+    volumes:
+      - type: bind
+        source: .
+        target: /work
+    ports:
+      - "${WIKI_BIND:-0.0.0.0}:${WIKI_PORT:-0}:8080"
+    entrypoint: ["/bin/sh", "/work/scripts/preview.sh"]
+    init: true

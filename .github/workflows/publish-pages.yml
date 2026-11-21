@@ -2,7 +2,7 @@ name: Publish GitHub Pages
 
 on:
   workflow_run:
-    workflows: [Release GFM]
+    workflows: [Release wiki]
     branches: [main]
     types: [completed]
 

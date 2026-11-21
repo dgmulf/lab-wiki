@@ -1,0 +1,26 @@
+#!/bin/sh
+# Resolve the checkout from this script, including worktrees in hidden directories.
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+cd "$root"
+export WIKI_UID=$(id -u) WIKI_GID=$(id -g)
+# Compose normally collides when different worktrees share the same basename.
+project="lab-wiki-$(printf '%s' "$root" | cksum | cut -d ' ' -f 1)"
+compose() { docker compose --project-name "$project" --project-directory "$root" -f "$root/compose.yaml" "$@"; }
+case "${1:-dev}" in
+  dev)
+    compose up --build -d
+    printf '\nPreview address (replace 0.0.0.0 with localhost or your VM hostname):\n'
+    compose port wiki 8080
+    ;;
+  stop) compose down ;;
+  logs) compose logs -f wiki ;;
+  url) compose port wiki 8080 ;;
+  build)
+    docker run --rm --user "$WIKI_UID:$WIKI_GID" \
+      --mount "type=bind,source=$root,target=/work" --workdir /work \
+      ghcr.io/typst/typst:0.15.1@sha256:032e292249bcd378480cc7c142cfa324b63ef8aadeb88d7e7230320c4c9c422f \
+      compile --features html,bundle --format bundle --root /work wiki.typ _site
+    ;;
+  *) echo 'Usage: scripts/wiki [dev|stop|logs|url|build]' >&2; exit 2 ;;
+esac

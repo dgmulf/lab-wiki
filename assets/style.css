@@ -1,0 +1,35 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.65; color: #243140; background: #fafbf9; }
+body { margin: 0; }
+header, main, footer { max-width: 64rem; margin: auto; padding: 1.5rem clamp(1rem, 4vw, 3rem); }
+header { border-bottom: 1px solid #ccd4da; }
+header > a { font-size: 1.5rem; font-weight: 750; text-decoration: none; }
+header nav { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: .8rem; font-size: .9rem; }
+main { max-width: 52rem; min-height: 60vh; }
+a { color: #17618b; text-underline-offset: .18em; overflow-wrap: anywhere; }
+h1, h2, h3, h4 { line-height: 1.25; scroll-margin-top: 1rem; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -.025em; }
+h2 { margin-top: 2.5rem; }
+h3 { margin-top: 2rem; }
+p, li { max-width: 80ch; }
+li + li { margin-top: .4rem; }
+figure { margin: 2rem 0; }
+img, svg { max-width: 100%; height: auto; }
+math[display="block"] { overflow-x: auto; padding: .5rem 0; }
+figcaption, footer { font-size: .9rem; color: #536375; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #ccd4da; padding: .7rem; text-align: left; vertical-align: top; }
+pre { overflow-x: auto; }
+.callout-note { border-left: 3px solid #17618b; padding: .1rem 1.2rem; background: #edf3f6; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 1rem; top: .5rem; background: white; padding: .5rem; }
+:focus-visible { outline: 2px solid #17618b; outline-offset: 3px; }
+@media (prefers-color-scheme: dark) {
+  :root { color: #e1e6ed; background: #172029; }
+  a { color: #8dcced; }
+  figcaption, footer { color: #b0bfce; }
+  .callout-note { background: #233440; }
+  figure img { background: white; }
+}
+
+.toc { padding: 1rem 1.25rem; border: 1px solid #ccd4da; border-radius: .3rem; font-size: .95rem; }
+.toc ul { margin-bottom: 0; padding-left: 1.25rem; }

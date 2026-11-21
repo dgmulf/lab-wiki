@@ -1,11 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
-    "quarto-authoring": {
-      "source": "posit-dev/skills",
+    "typst": {
+      "source": "lucifer1004/claude-skill-typst",
+      "commit": "3540b897b79c053b6cd822e307ffa691066fec19",
       "sourceType": "github",
-      "skillPath": "quarto/quarto-authoring/SKILL.md",
-      "computedHash": "24ae1cc561222b945dea7b7b6a6be35f19e9238da8699251202c9715efb5d1cc"
+      "skillPath": "skills/typst/SKILL.md",
+      "computedHash": "31ed30eb1cce02cd97f050132b38ac8aa09d4c6c5bbd8b5c411106810d8dbd66"
     }
   }
 }
