@@ -32,6 +32,14 @@ To render the GitHub Pages website locally:
 uv run --locked quarto render --profile pages --to html
 ```
 
+## Delta worktrees
+
+To use the [Quarto authoring skill](https://github.com/posit-dev/skills/tree/main/quarto/quarto-authoring)
+in Delta, place the entire skill directory at `.agents/skills/quarto-authoring/`
+in your original checkout. Delta links that directory into new local managed
+worktrees via [`.delta/linked`](.delta/linked). The skill is optional and is not
+installed by setup.
+
 ## GitHub Pages
 
 The website is published at <https://dgmulf.github.io/lab-wiki/>.
