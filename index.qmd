@@ -5,14 +5,14 @@ title: Research Wiki
 A shared notebook for hypotheses, experiments, and academic literature.
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- The projects below study how agents collect learning samples and how they act on partial observations.
+- This wiki indexes two research topics: behavioral policy optimization
+  (currently a stub) and reinforcement learning under partial observability.
 :::
 
-## Research projects
+## Research topics
 
-- [Behavioral policy optimization: variations and open questions](behavioral-policy-optimization.qmd) ---
-  active importance sampling for policy gradients, candidate extensions to
-  Papini et al. (2024), and a plan for testing their costs and benefits.
+- [Behavioral policy optimization](behavioral-policy-optimization.qmd) ---
+  a stub with a reference but no write-up yet.
 - [Reinforcement learning under partial observability](pomdp-rl.qmd) ---
   how agents represent sensory input for decisions, and how learning a prior
   over those representations might guide attention.
