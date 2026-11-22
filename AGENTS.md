@@ -4,15 +4,15 @@ This site is intended to serve as a reference for any potential contributors, hu
 
 ## Editing workflow
 
-### Clarify intent
+1. **Clarify intent:** Maintain a bullet list of key ideas in a callout box at the top of every page. Before making any changes, ensure that the key ideas accurately reflect the user intent.
 
-Maintain a bullet list of key ideas in a callout box at the top of every page. Before making any changes, ensure that the key ideas accurately reflect the user intent.
+2. **Make changes:** Adjust the content of the wiki to express the relevant key ideas in light of the user's instructions.
 
-### Proofread
+3. **Proofread:** After making an edit, read back the entire page and score it on a scale of 1 to 5 for how well it delivers a tightly focused narrative around the key ideas. After every round of proofreading, give the user your score and a brief justification. If it scores below a 5, return to the step labeled Make Changes.
 
-After making an edit, read back the entire page and score it on a scale of 1 to 5 for how well it delivers a tightly focused narrative around the key ideas. If it scores below a 5, make an adjustment and return to the proofreading step.
+### Report final results
 
-### Demonstrate site changes
+In your final summary, inform the user of which key ideas, if any, required amendment, and why. If none did, explain why.
 
 After making material changes to the rendered site, start a Quarto preview from
 the repository root in a Delta background terminal:
