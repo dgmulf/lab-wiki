@@ -4,6 +4,19 @@ description: "Attention, perceptual compression, and learning progress as aesthe
 toc-depth: 3
 ---
 
+::: {#key-ideas .callout-note title="Key ideas"}
+- The model proposes that beauty rewards learning progress:
+  attention returns to experiences that help the organism learn which perceptual
+  representations are likely.
+- With the encoder and input distribution fixed, a better prediction of those
+  representations reduces the mismatch in the coding bound without changing
+  how much information the representations retain.
+- The candidate reward guides movement and attention toward a sampling
+  distribution that minimizes the total variance of the importance-weighted
+  Monte Carlo gradient estimate used to train the latent prior. How closely
+  the organism can approach that distribution depends on its available actions.
+:::
+
 ## Overview
 
 This model proposes that beauty helps guide attention toward experiences from
