@@ -1,5 +1,6 @@
 /_site/
 /_release/
+/references/
 /.jupyter_cache/
 /*_cache/
 /.quarto/
