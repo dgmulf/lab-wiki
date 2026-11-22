@@ -11,10 +11,10 @@ toc-depth: 3
 - With the encoder and input distribution fixed, a better prediction of those
   representations reduces the mismatch in the coding bound without changing
   how much information the representations retain.
-- The candidate reward guides movement and attention toward a sampling
-  distribution that minimizes the total variance of the importance-weighted
-  Monte Carlo gradient estimate used to train the latent prior. How closely
-  the organism can approach that distribution depends on its available actions.
+- The extrinsic policy determines which latents the perceptual prior should
+  predict. The intrinsic policy seeks samples that train that prior efficiently:
+  its expected intrinsic reward minimizes reverse KL from its latent marginal
+  to the variance-optimal importance proposal for the prior gradient.
 :::
 
 ## Overview
@@ -38,14 +38,14 @@ distinct from the proposed biological interpretation and aesthetic mechanism.
 
 | Component | Role |
 | --- | --- |
-| Action policy $\pi$ | Selects movement and attentional controls from current latent $z$ and memory $h$. |
+| Action policies $\pi_e$, $\pi_i$ | Both select movement and attention from latent $z$ and memory $h$; $\pi_e$ seeks task reward and $\pi_i$ seeks intrinsic reward. |
 | Transition model $T$ | Updates the hidden state, including attentional and sensor configuration. |
 | Observation density $E$ | Generates sensory input $X$ from state $S$. |
 | Perceptual channel $F$ | Encodes sensory input $X$ as latent representation $Z$. |
 | Memory update $U$ | Summarizes past latents and actions for the policy. |
 | Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
-| Importance estimator $w_\eta$ | Uses running latent feature statistics to estimate how sampling in the current context differs from the marginal of experience. |
-| Aesthetic reward | Heuristically tracks learning progress and contributes to action selection. |
+| Importance estimator $w_\eta$ | Estimates the ratio of extrinsic to intrinsic latent frequencies. |
+| Intrinsic reward $r_I$ | Guides $\pi_i$ toward samples informative for learning the prior; its interpretation as aesthetic learning progress is a hypothesis. |
 
 **Information flow:** sensory input → $F$ → current latent and memory → action
 under $\pi$ → state transition → next sensory input. Learning from the latents
@@ -66,7 +66,8 @@ redirecting gaze or internal attentional focus. Both dimensions can affect
 sensory input. Factoring the action space does not assume independent controls:
 we use a joint policy over the pair.
 
-The policy acts on the current perceptual latent $z_t$ and memory $h_t$:
+Write $\pi$ for whichever policy generates the trajectory. It acts on the
+current perceptual latent $z_t$ and memory $h_t$:
 
 $$
   a_t \sim \pi(\cdot \mid z_t,h_t),
@@ -79,8 +80,7 @@ for the next decision. The policy has no direct access to the hidden state
 $s_t$. This use of an internal representation of experience is consistent with
 the agent-state approach of @hu2025 [sec. 3]; our particular split into a
 perceptual latent and memory is a modeling choice. A compressed memory is not
-automatically a sufficient statistic or an exact belief state. Aesthetic reward
-is one proposed contribution to the reward guiding this policy.
+automatically a sufficient statistic or an exact belief state.
 
 ### Stimuli as consequences of actions
 
@@ -116,24 +116,9 @@ Primes denote the next time step. Integrals become sums for discrete variables.
 A stimulus is sampled from this distribution; the policy selects the action
 that influences it.
 
-To describe sampling from the agent's perspective, write $c=(z,h)$ for its
-current information and $b(s\mid c)$ for the conditional distribution of hidden
-state given that information. This is an analytical distribution, not a
-requirement that the agent explicitly calculate a belief. Define
-
-$$
-  p(x'\mid c,a)=\int b(s\mid c)p(x'\mid s,a)\,ds,
-  \qquad
-  p_\pi(x'\mid c)=\int_{\mathcal A}\pi(a\mid z,h)p(x'\mid c,a)\,da.
-$$
-
-The attended-input distribution $p_{\mathrm{att}}(x)$ used below denotes the
-inputs used for perceptual learning. If every transition supplies a sample,
-$p_{\mathrm{att}}(x')=\int d_\pi(c)p_\pi(x'\mid c)\,dc$, where $d_\pi$ is the
-distribution of current latents and memories over the sampling period. If only
-some transitions supply samples, condition on that selection. Both $d_\pi$ and
-$b(s\mid c)$ can change with the policy and experience; neither requires a
-stationary or Markov process over $c$.
+The attended-input distribution $p_{\mathrm{att}}(x)$ used below describes
+the sensory inputs used for perceptual learning. It depends on the policy
+that generates the trajectory and on which observations supply samples.
 
 ### Perceptual representation
 
@@ -337,267 +322,88 @@ against the source papers.
 
 ### Candidate reward: selecting efficient learning samples
 
-One candidate aesthetic reward favors action policies that sample latents
-efficiently for learning the prior. The established result concerns the variance
-of a gradient estimate; interpreting this efficiency as a proxy for learning
-progress remains a model hypothesis. For this derivation, freeze the encoder $F$
-and the reference stimulus distribution $p(x)$. Write their aggregate posterior
-as $p(z) = q_F(z)$, using the definition above. This target distribution is
-fixed, not necessarily uniform. In the proposed online model below, the reference
-is the marginal of ongoing experience, treated as approximately fixed because
-its change under aesthetic learning is assumed to be small on the relevant
-learning timescale. At fixed current information $c=(z_t,h_t)$,
-the policy induces a distribution over the **next** latent $z'=z_{t+1}$:
+The extrinsically motivated policy $\pi_e$ optimizes ordinary task return and
+plays the role of the target policy in [behavioral policy optimization
+(BPO)](behavioral-policy-optimization.qmd) [@papini2024]. The intrinsically
+motivated policy $\pi_i$ plays the role of the behavioral policy. What changes
+is the gradient its samples should estimate efficiently: not the policy
+gradient of task return, but the gradient used to fit the perceptual prior
+$R_\theta$ to what the agent experiences under $\pi_e$.
 
-$$
-  q_\pi(z'\mid c)
-  = \int p_\pi(x'\mid c)F(z'\mid x')\,dx'
-  = \int_{\mathcal A}\pi(a\mid z_t,h_t)
-      \left[\int p(x'\mid c,a)F(z'\mid x')\,dx'\right]da.
-$$
+For either policy, let $p_\pi(z)$ be the marginal distribution of a latent
+sampled along its trajectory. For example, run the policy for a fixed number
+of transitions and sample one transition uniformly. Use the same time weighting
+and initial conditions for both policies. Hold $\pi_e$, the encoder, and the
+current prior parameters fixed when comparing intrinsic policies.
 
-Hold $b(s\mid c)$, $T$, and $E$ fixed for this local policy comparison. In the
-rest of this derivation, $Z$ denotes the next latent sampled from this proposal,
-not the current latent used to choose the action.
+The target loss and the gradient contributed by one latent are
+$$
+  L(\theta)=\mathbb E_{p_{\pi_e}}[-\log R_\theta(Z)],\qquad
+  g_\theta(z)=\nabla_\theta[-\log R_\theta(z)].
+$$
+For a latent from an intrinsic trajectory, the importance-weighted estimate is
+$$
+  \widehat g(Z)=w(Z)g_\theta(Z),\qquad
+  w(z)=\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
+$$
+The denominator measures how often $\pi_i$ encounters the latent across its
+trajectory. If $\pi_i$ samples wherever $p_{\pi_e}(z)g_\theta(z)$ is nonzero,
+then $\mathbb E_{p_{\pi_i}}\widehat g=\nabla_\theta L$. Among unrestricted
+proposals, the one minimizing the sum of the component variances of this
+single-sample estimate is [@alain2016, Theorem 1]
+$$
+  q_\theta^*(z)=\frac{p_{\pi_e}(z)\|g_\theta(z)\|_2}{C_\theta},\qquad
+  C_\theta=\mathbb E_{p_{\pi_e}}\|g_\theta(Z)\|_2.
+$$
+Assume $0<C_\theta<\infty$ and finite estimator second moments. Relative to
+their frequency under $\pi_e$, latents that give larger prior gradients should
+be sampled more often.
 
-Suppose the prior learns by stochastic gradient descent on expected negative log
-likelihood. Define the loss and its per-latent gradient as
+**Why reverse KL?** BPO fits the behavioral policy using forward KL from the
+optimal proposal to the behavioral distribution. We reverse those arguments so
+that the expectation is under the policy collecting the rewards. On an
+intrinsic trajectory, assign each observed latent the reward
 $$
-  L(\theta) = \mathbb E_{p(Z)}[-\log R_\theta(Z)],
-  \qquad
-  g_\theta(z) = \nabla_\theta[-\log R_\theta(z)].
+  r_I(z)=\log\|g_\theta(z)\|_2
+       +\log\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
 $$
-Sampling $A\sim\pi(\cdot\mid z_t,h_t)$, then $X'\sim p(\cdot\mid c,A)$, and
-then $Z\sim F(\cdot\mid X')$ gives a sample from $q_\pi(\cdot\mid c)$.
-Here every sampled transition supplies a latent; selectively retaining samples
-would require using the corresponding conditional proposal instead.
-To estimate the gradient for the fixed target
-$p$, rather than for the attended distribution, weight that sample by the
-**importance ratio**:
+Its expected trajectory average is
 $$
-  \widehat g(Z,c) = \frac{p(Z)}{q_\pi(Z \mid c)}g_\theta(Z).
+  \mathbb E_{p_{\pi_i}}[r_I(Z)]
+  =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
 $$
-This corrects for how the action policy changes sampling frequency, so that
-$\mathbb E[\widehat g \mid c] = \nabla_\theta L$. Without this correction,
-the policy generally changes the expected update as well as its variance.
-@alain2016 [Theorem 1] show that the proposal minimizing the trace of the
-estimator's covariance---the sum of the variances of its gradient
-components---is
-$$
-  q_\theta^*(z) = \frac{p(z)\|g_\theta(z)\|_2}{C_\theta},
-  \qquad
-  C_\theta = \mathbb E_{p(Z)}\|g_\theta(Z)\|_2.
-$$
-Assume $0 < C_\theta < \infty$, appropriate sampling support wherever
-$p(z)g_\theta(z)$ is nonzero, and finite estimator second moments for the
-proposals being compared. Hold $\theta$ fixed during each policy comparison.
-This motivates the following KL objective for the action policy at fixed $c$:
-$$
-  J_c(\pi;\theta)
-  = \mathbb E_{q_\pi(Z \mid c)} [\log p(Z) + \log\|g_\theta(Z)\|_2]
-    + H_{q_\pi}(Z \mid c)
-$$
-$$
-  J_c(\pi;\theta)
-  = \log C_\theta
-    - D_{\mathrm{KL}}\big(q_\pi(\cdot \mid c)\Vert q_\theta^*\big).
-$$
-Here $H_{q_\pi}(Z \mid c) = -\mathbb E_{q_\pi}\log q_\pi(Z \mid c)$ is the
-entropy of the induced latent distribution given current information $c$
-(differential entropy for continuous latents). Assume these terms are well-defined. Because KL
-divergence is nonnegative and vanishes when its distributions match, **the
-global maximum over unrestricted latent sampling distributions occurs at the
-variance-optimal proposal $q_\theta^*$**. An action policy attains this
-maximum only if its mixtures of the action-conditioned latent distributions
-$\int p(x'\mid c,a)F(z\mid x')\,dx'$ can realize that proposal. In particular,
-importance weighting cannot recover target contributions that no available
-action can reach given $c$. This is a local sampling objective, not a
-solution to the full sequential control problem: actions also change future
-states, and other rewards or costs may affect the optimal policy. Define
-$w(z,c)=p(z)/q_\pi(z\mid c)$. The corresponding ideal sample reward is
-$$
-  r_{\mathrm{aest},\theta}(z,c;\pi)
-  = \log\|g_\theta(z)\|_2 + \log w(z,c).
-$$
-The estimator below approximates this ratio directly for use in both reward and
-prior learning. A separate possible approximation is to replace $p$ by
-$R_\theta$ in the reward, but that changes the unrestricted optimum to a proposal
-proportional to $R_\theta(z)\|g_\theta(z)\|_2$ and does not itself provide a
-correct importance weight for learning $p$.
-
-**Status:** the shared global optimum is a mathematical result. Treating this
-objective as an estimate of learning progress remains a hypothesis. It does not
-establish a monotonic relationship between KL divergence and gradient variance,
-or measure the actual reduction in prior mismatch over an update interval.
+Thus maximizing intrinsic reward minimizes reverse KL. If an available policy
+can realize $q_\theta^*$, it attains the single-sample variance optimum.
+Otherwise, a smaller reverse KL need not imply smaller variance. The result
+does not account for correlations between successive updates or establish
+that the reward measures actual learning progress.
 
 ### Candidate estimator: running latent feature averages {#sec-feature-ema}
 
-We propose an online, context-conditioned adaptation of **least-squares
-importance fitting (LSIF)** [@kanamori2009, sec. 2.2]. LSIF estimates a density
-ratio directly using a model linear in features and a squared-error objective.
-Here, the coefficients depend on context, and an exponential moving average of
-ongoing experience replaces the target feature sample mean. These online and
-context-dependent choices, and the estimator's use in aesthetic reward and prior
-learning, are our proposed adaptation rather than results established by that
-paper.
-
-The online target is the **marginal of ongoing experience**, averaged over
-contexts. For a given policy and context distribution $\mu_\pi$, define
-
+The two marginals need not be estimated separately. Least-squares importance
+fitting [@kanamori2009, sec. 2.2] estimates their ratio by minimizing
 $$
-  p_\pi(z)=\mathbb E_{C\sim\mu_\pi}[q_\pi(z\mid C)].
+  \mathcal L(w)=\tfrac12\mathbb E_{p_{\pi_i}}[w(Z)^2]
+                   -\mathbb E_{p_{\pi_e}}[w(Z)].
 $$
+When the target marginal is supported by the sampling marginal and their
+ratio has finite second moment, this differs from the mean squared error
+under $p_{\pi_i}$ by a constant and a factor of one half.
 
-This identity does not require attention to preserve an external reference
-distribution. Both the conditional sampling distribution and the context
-distribution can change with the policy. Our modeling assumption is that
-aesthetic learning changes the long-run marginal slowly and by little enough
-that we can hold it fixed during local learning comparisons. We write this
-approximately fixed marginal as $p$ below. The variance-optimal result above is
-therefore a local reference calculation, not a claim about the equilibrium of
-all contexts and a changing marginal together.
+For a feature model $w_\eta(z)=\eta^\top f(z)$, maintain an exponential moving
+average $m_e$ of the fixed features $f(z)$ **from extrinsic trajectories only**.
+Then $\eta^\top m_e$ estimates the second expectation; intrinsic trajectory
+samples supply the first. For example, one-hot features retain category
+frequencies, whereas the mean of a continuous latent alone cannot distinguish
+two distributions with the same mean but different tails.
 
-For fixed prior parameters, unweighted samples already satisfy
-$\mathbb E_{C,Z}[g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]$. Exact importance
-weighting has the stronger property
-$\mathbb E_{Z\mid c}[w(Z,c)g_\theta(Z)]=\mathbb E_p[g_\theta(Z)]$ for each
-context with adequate support. It corrects context-dependent sampling; it is
-not needed merely to recover the marginal expectation. Whether approximate
-weighting improves learning depends on its errors, variance, and temporal
-correlations in experience.
-
-#### What is retained from experience
-
-Choose a fixed feature map $f:\mathcal Z\to\mathbb R^d$ and maintain an
-exponential moving average (EMA) of its activity. For transition $t$, the context
-is $c_t=(z_t,h_t)$ and the new latent is $z_{t+1}$:
-
-$$
-  m_{t+1}=(1-\beta)m_t+\beta f(z_{t+1}),
-  \qquad 0<\beta<1.
-$$
-
-After initialization effects subside, $m_t$ estimates
-$\mathbb E_p[f(Z)]$ using exponentially decaying weights on past experience.
-No individual historical latents are retained. The average is updated from
-**unweighted** observations, since their marginal is the target. Small $\beta$
-gives a longer memory, with a decay timescale of approximately $1/\beta$
-transitions. The averaging window should cover short-term sampling fluctuations
-while remaining short relative to substantial marginal drift. Correlated
-experience reduces the amount of independent information in that window.
-
-Represent the ratio using a context-dependent coefficient vector:
-
-$$
-  w_\eta(z,c)=a_\eta(c)^\top f(z).
-$$
-
-The map from context to coefficients can be nonlinear. Linearity in the stored
-features is what allows the marginal expectation to be computed from the EMA:
-
-$$
-  \mathbb E_p[w_\eta(Z,c)]
-  =a_\eta(c)^\top\mathbb E_p[f(Z)]
-  \approx a_\eta(c)^\top m_t.
-$$
-
-#### Learning the ratio
-
-At fixed $c$, use the LSIF population objective [@kanamori2009, eq. 2], with
-$q_\pi(\cdot\mid c)$ as the denominator distribution and $p$ as the numerator:
-
-$$
-  \mathcal L_c(w)
-  =\frac12\mathbb E_{q_\pi(Z\mid c)}[w(Z,c)^2]
-   -\mathbb E_{p(Z)}[w(Z,c)].
-$$
-
-Assume $p$ has support within $q_\pi(\cdot\mid c)$ and the ratio has finite
-second moment under that conditional distribution. Completing the square gives
-
-$$
-  \mathcal L_c(w)
-  =\frac12\mathbb E_{q_\pi(Z\mid c)}
-    \left[\left(w(Z,c)-\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right]
-   -\frac12\mathbb E_{q_\pi(Z\mid c)}
-    \left[\left(\frac{p(Z)}{q_\pi(Z\mid c)}\right)^2\right].
-$$
-
-The last term does not depend on the estimator. The unrestricted minimizer is
-therefore the true importance ratio; a restricted feature model approximates it
-in conditional mean squared error. The corresponding online training loss is
-
-$$
-  \widehat{\mathcal L}_t(\eta)
-  =\frac12\left[a_\eta(c_t)^\top f(z_{t+1})\right]^2
-   -a_\eta(c_t)^\top m_t.
-$$
-
-Treat $m_t$ and $f$ as fixed when differentiating this loss with respect to
-$\eta$. This is a proposed online approximation to the population objective:
-EMA noise, lag, and correlations between recent history and the current context
-mean it is not generally an unbiased conditional loss estimate. Its accuracy
-requires suitable timescales and adequate coverage of contexts and latents.
-
-#### Why use features rather than the latent directly?
-
-The choice $f(z)=z$ is allowed, but stores only the latent mean and restricts the
-ratio to a linear function of the latent coordinates. Adding a constant feature,
-$f(z)=(1,z)$, permits an intercept and the baseline $w=1$. Equal means need not
-imply equal distributions: two symmetric distributions can have different tail
-probabilities, requiring weights that depend on magnitude rather than sign.
-Squared coordinates, fixed nonlinear basis functions, or soft category
-memberships can capture such differences. For one-hot categorical latents,
-$f(z)=z$ already stores all category frequencies.
-
-Thus $f$ is a readout of the existing latent representation, not necessarily a
-separate learned representation. Its purpose is to expose statistics useful for
-estimating the ratio. An arbitrary nonlinear ratio network cannot generally use
-the raw mean in place of an expectation:
-$\mathbb E_p[w_\eta(Z,c)]\ne w_\eta(\mathbb E_p[Z],c)$.
-Initially freeze both $F$ and $f$ so that stored averages retain their meaning.
-Learning either representation would require addressing stale statistics.
-
-#### Shared use in reward and prior updates
-
-Using the estimator before training it on the current transition, compute
-
-$$
-  \widehat w_t=w_{\eta_t}(z_{t+1},c_t),
-  \qquad
-  \widehat r_{\mathrm{aest},t}
-  =\log\|g_{\theta_t}(z_{t+1})\|_2+\log\widehat w_t,
-$$
-
-$$
-  \theta_{t+1}
-  =\theta_t-\alpha_t\widehat w_t\,g_{\theta_t}(z_{t+1}).
-$$
-
-The same estimate supplies the additive log-ratio term in aesthetic reward and
-the multiplicative weight on the prior's loss gradient. Train $\eta$ using
-$\widehat{\mathcal L}_t$ and the pre-observation $m_t$, then incorporate
-$f(z_{t+1})$ into the EMA. The prior update treats the weight as a coefficient,
-without differentiating through the ratio estimator. The action policy learns
-from the resulting aesthetic reward; no additional importance weighting of its
-own parameter update is proposed here.
-
-The reward requires strictly positive weights and nonzero gradient magnitude.
-One possible positive model uses nonnegative features and coefficients with a
-positive constant contribution. This preserves the linear expectation identity
-but restricts the function family. Alternatively, flooring or clipping outputs
-for numerical stability changes the effective weight and reward and introduces
-additional approximation. Applying a nonlinear output function also prevents
-using $a_\eta(c)^\top m_t$ as its marginal expectation without a new derivation.
-
-**Status and limitations:** the population minimizer follows from the algebra
-above; the feature EMA implementation and its biological interpretation are
-model proposals. Finite features, positivity constraints, estimation error, and
-marginal drift prevent a general claim of unbiased prior updates or optimal
-sampling. Aesthetic reward changes sampling, and the estimator tracks the
-resulting imbalance through experience statistics; reward alone does not
-identify the ratio. This approach estimates $\log p-\log q_\pi$ jointly and
-does not separately recover either density or conditional entropy.
+On an intrinsic trajectory, use the pre-update ratio estimate in two ways:
+add $\log w_\eta(z)$ to the log gradient norm for the reward, and multiply
+$g_\theta(z)$ by $w_\eta(z)$ for the prior update. The logarithms require
+positive weights and gradient norms for finite rewards. Restricting the
+feature model to positive ratios or flooring estimates for numerical stability
+can introduce approximation error. Limited features, correlated samples, and
+changes in either policy can also make the estimated weights inaccurate.
 
 ## Future extension: temporal conditioning
 
@@ -642,18 +448,12 @@ is not currently part of the model.
   positivity constraints, and learning timescales yield accurate weights? How
   much bias arises from correlated experience and marginal drift, and when does
   weighting outperform unweighted prior learning?
-- **Slow marginal:** is the long-run latent marginal sufficiently stable under
-  aesthetic learning to justify the local fixed-target approximation? How should
-  the estimator track larger changes in policy, environment, or representation?
-- **Conditional entropy:** how can the organism tractably estimate
-  $H_{q_\pi}(Z \mid c)$, or the sample term $-\log q_\pi(z \mid c)$? This is
-  entropy of the latent mixture induced by the policy, transitions, and sensory
-  mapping, not simply entropy of the action policy or of $F(Z \mid X)$. The
-  ratio-based reward avoids estimating this term separately, but does not solve
-  conditional entropy estimation itself.
+- **Policy scheduling:** when should the agent pursue the extrinsic task and
+  when should it collect intrinsic learning samples? How quickly must the ratio
+  estimator track changes in either policy?
 - **KL and gradient variance:** sharing a global optimum does not guarantee that
   gradient-estimator variance increases monotonically with
-  $D_{\mathrm{KL}}(q_\pi\Vert q_\theta^*)$. Under what additional conditions
+  $D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*)$. Under what additional conditions
   does reducing this KL reduce variance and improve learning? Restrictions on
   attainable latent distributions can also make the KL-optimal and
   variance-optimal policies differ.
