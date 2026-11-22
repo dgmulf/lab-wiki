@@ -2,11 +2,17 @@
 
 This site is intended to serve as a reference for any potential contributors, human or agent, to the ongoing research detailed within.
 
-## Editing prose
+## Editing workflow
 
-Keep the wiki focused on the key arguments or findings addressed by the user. Do not include references to additional context from user conversations or other work unless it falls within the explicit scope of a wiki article or section.
+### Clarify intent
 
-## Demonstrate site changes
+Maintain a bullet list of key ideas in a callout box at the top of every page. Before making any changes, ensure that the key ideas accurately reflect the user intent.
+
+### Proofread
+
+After making an edit, read back the entire page and score it on a scale of 1 to 5 for how well it delivers a tightly focused narrative around the key ideas. If it scores below a 5, make an adjustment and return to the proofreading step.
+
+### Demonstrate site changes
 
 After making material changes to the rendered site, start a Quarto preview from
 the repository root in a Delta background terminal:
