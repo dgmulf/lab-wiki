@@ -4,12 +4,15 @@ title: Research Wiki
 
 A shared notebook for hypotheses, experiments, and academic literature.
 
+::: {#key-ideas .callout-note title="Key ideas"}
+- The projects below study how agents collect learning samples and how they act on partial observations.
+:::
+
 ## Research projects
 
 - [Behavioral policy optimization: variations and open questions](behavioral-policy-optimization.qmd) ---
   active importance sampling for policy gradients, candidate extensions to
   Papini et al. (2024), and a plan for testing their costs and benefits.
-- [Computational model of aesthetics](computational-aesthetics.qmd) ---
-  attention as a learned policy, perceptual compression, and learning progress
-  as aesthetic reward. Includes the current model, candidate modeling
-  approaches, open questions, and source links.
+- [Reinforcement learning under partial observability](pomdp-rl.qmd) ---
+  how agents represent sensory input for decisions, and how learning a prior
+  over those representations might guide attention.

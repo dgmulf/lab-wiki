@@ -12,8 +12,8 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: computational-aesthetics.qmd
-        text: Computational aesthetics
+      - href: pomdp-rl.qmd
+        text: RL under partial observability
       - href: behavioral-policy-optimization.qmd
         text: Behavioral policy optimization
 bibliography: references.bib

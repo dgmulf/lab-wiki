@@ -1,0 +1,33 @@
+---
+title: "Reinforcement learning under partial observability"
+description: "Perceptual representations, memory, and attention in partially observable Markov decision processes."
+---
+
+::: {#key-ideas .callout-note title="Key ideas"}
+- In a partially observable Markov decision process (POMDP), an agent must choose actions without directly observing the full state. Past observations can matter even when the current input looks the same.
+- Learning what an encoder retains and learning how often its outputs occur are different problems. The projects below study each in turn.
+:::
+
+## From observations to actions
+
+A policy seeks to maximize expected cumulative reward. In a POMDP it receives
+an observation $x_t$ generated from the hidden state $s_t$. Its action $a_t$
+affects the next state and hence what it can observe next. For example, looking
+away from an object removes it from view without necessarily removing it from
+the scene.
+
+In the models considered here, an encoder $F(z_t\mid x_t)$ represents the
+current observation, and a memory $h_t$ summarizes earlier experience. A policy
+chooses an action from $(z_t,h_t)$: it might look back toward the remembered
+object even though the current view gives no indication of its location. This
+internal state need not retain everything needed for an optimal decision.
+
+## Research questions
+
+- [Learning informative perceptual representations](perceptual-representations.qmd):
+  which distinctions should the encoder preserve? Predictive learning and
+  reconstruction offer different training signals; neither by itself establishes
+  that the result supports good decisions.
+- [Computational model of aesthetics](computational-aesthetics.qmd): given a
+  useful encoder, can learning the distribution of its outputs reduce coding
+  cost? The model asks whether progress in learning that prior rewards attention.

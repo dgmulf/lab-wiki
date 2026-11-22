@@ -1,0 +1,64 @@
+---
+title: "Learning informative perceptual representations"
+description: "Predictive and reconstruction objectives for perceptual encoders under partial observability."
+---
+
+::: {#key-ideas .callout-note title="Key ideas"}
+- An encoder must preserve distinctions useful for decisions, not merely produce latents that are easy to predict.
+- Temporal prediction and sensory reconstruction are candidate training signals. Neither avoiding collapse nor achieving a good variational objective guarantees task relevance.
+:::
+
+In [reinforcement learning under partial observability](pomdp-rl.qmd), the
+encoder $F(z\mid x)$ determines which distinctions in the sensory input $x$
+reach the policy as a latent $z$. If two observations call for different actions
+given the same memory, mapping both to the same latent distribution leaves the
+policy unable to respond differently. Conversely, preserving every sensory detail
+can expend limited capacity on distinctions that never affect a decision.
+
+## Learning by temporal prediction
+
+The predictive learning rule studied by @halvagal2023 works in latent space,
+without reconstructing the sensory input. Predictive plasticity brings
+representations of temporally adjacent inputs together, supporting invariance;
+Hebbian plasticity preserves variation in activity and counters collapse.
+Variation alone does not tell us whether the encoder distinguishes situations
+that require different actions.
+
+## Learning by reconstruction
+
+A variational autoencoder adds a decoder $p_\psi(x\mid z)$. On inputs sampled
+from the attended-input distribution $p_{\mathrm{att}}$, let expectations be
+under $p_{\mathrm{att}}(x)F(z\mid x)$. Following @alemi2018 [Eqs. 2--6], define
+reconstruction distortion and coding cost by
+
+$$
+\mathcal D = \mathbb E[-\log p_\psi(X\mid Z)],\qquad
+\mathcal C = \mathbb E\!\left[\log\frac{F(Z\mid X)}{R_\theta(Z)}\right],
+$$
+
+where $R_\theta$ is a normalized latent prior. Jointly minimizing
+$\mathcal D+\beta\mathcal C$ over encoder, decoder, and prior trades
+reconstruction fidelity against coding cost for $\beta\geq0$; at $\beta=1$
+the objective is the expected negative ELBO. The likelihood determines which
+errors matter: a fixed-variance isotropic Gaussian gives squared error up to a
+scale factor and a constant.
+
+With well-defined entropy and log-loss, $H(X)-\mathcal D\leq I(X;Z)$.
+Beating the best input-independent reconstruction loss therefore requires
+informative latents. A good ELBO alone does not: an expressive decoder can
+ignore $Z$, and positive coding cost can reflect prior mismatch rather than
+retained information. Evaluate rate and distortion separately, then test whether
+the policy can actually use the retained information on its task.
+
+## Connection to prior learning
+
+Either approach could supply an encoder for the [computational model of
+aesthetics](computational-aesthetics.qmd). That model freezes an already-useful
+encoder to isolate learning of the latent prior. Joint training instead changes
+the latent target itself. Which training stimuli, likelihood, architecture, and
+compression weight preserve useful distinctions remains an empirical question.
+
+## References
+
+::: {#refs}
+:::

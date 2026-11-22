@@ -19,7 +19,9 @@ toc-depth: 3
 
 ## Overview
 
-This model proposes that beauty helps guide attention toward experiences from
+Within the [POMDP research project](pomdp-rl.qmd), this model takes a useful
+perceptual encoder as given and asks what the organism gains by learning the
+frequency of its outputs. It proposes that beauty helps guide attention toward experiences from
 which an organism can learn. As its model of perceptual representations
 improves, a sense of beauty acts as an internal reward that encourages
 attention. Perception encodes sensory information under limited processing
@@ -116,9 +118,8 @@ Primes denote the next time step. Integrals become sums for discrete variables.
 A stimulus is sampled from this distribution; the policy selects the action
 that influences it.
 
-The attended-input distribution $p_{\mathrm{att}}(x)$ used below describes
-the sensory inputs used for perceptual learning. It depends on the policy
-that generates the trajectory and on which observations supply samples.
+The distribution of sensory inputs used for perceptual learning depends on
+the policy that generates the trajectory and on which observations supply samples.
 
 ### Perceptual representation
 
@@ -203,10 +204,9 @@ $$
 $$
 
 Imposing $\mathcal C(F,\theta) \le K$ is sufficient but may be conservative when
-the prior is mismatched. Complexity can also enter the organism's objective as a
-penalty. A candidate VAE objective with reconstruction log-loss is specified
-below. Its penalty weight, likelihood family, and relationship to capacity and
-behavioral usefulness remain open.
+the prior is mismatched. For a fixed encoder and input distribution, improving
+the prior fit brings the bound closer to the information rate without changing
+the rate itself.
 
 **Technical conditions:** finite KL requires appropriate prior support and a
 well-defined rate; base-2 logs yield bits and natural logs yield nats. For
@@ -215,27 +215,7 @@ quantization to obtain a finite information rate.
 
 ## Learning and aesthetic reward
 
-### Learning informative representations
-
-Representations must preserve meaningful differences between inputs. If every
-input produced the same representation, prediction would be easy but perception
-would convey no useful information.
-
-Latent predictive learning offers one possible mechanism for acquiring $F$
-before the simplified model's learning phase [@halvagal2023]:
-
-- Predictive plasticity brings representations of temporally adjacent inputs
-  together, supporting invariance.
-- Hebbian plasticity preserves activity variation and prevents representational
-  collapse.
-- Prediction occurs in latent space without requiring sensory reconstruction.
-
-That temporal training mechanism is distinct from the history-free density model
-used here. Connecting it to our probabilistic prior and aesthetic reward is our
-synthesis, not a result established by that paper. Preventing collapse does not
-itself specify which information is task-relevant.
-
-### Initial option: freeze an already-useful encoder
+### Isolating prior learning with a fixed encoder
 
 Assume $F$ learned useful representations on an earlier task. Freeze its
 parameters (a stop-gradient equivalent) and train only $R_\theta$. This prevents
@@ -245,52 +225,8 @@ discard distinctions.
 For a fixed input distribution, prior learning reduces mismatch in $\mathcal C$
 while $I_F(X;Z)$ remains fixed. Changing which stimuli are attended can change
 the input distribution, so comparisons of learning progress must distinguish
-model improvement from stimulus-selection effects. Learning the initial useful
-$F$ remains a separate problem.
-
-### Initial option: learn representations with a VAE
-
-A variational autoencoder is a candidate starting point for jointly learning
-representations and their prior. Add a decoder $p_\psi(x \mid z)$ that
-reconstructs sensory input from the latent. On attended stimuli, use
-reconstruction log-loss, following @alemi2018 [Eqs. 2--6]:
-
-$$
-  \mathcal D(F,\psi)
-  = \mathbb E_{X \sim p_{\mathrm{att}},\,Z \sim F( \cdot \mid X)}[-\log p_\psi(X \mid Z)].
-$$
-
-The candidate joint objective is:
-
-$$
-  \min_{F,\theta,\psi}\;\mathcal D(F,\psi) + \beta\mathcal C(F,\theta),
-  \qquad
-  \beta \geq 0.
-$$
-
-$\mathcal C$ is the expected encoder/prior KL defined above, evaluated on the
-same attended-input distribution. At $\beta = 1$ this is the negative ELBO;
-other weights adjust the reconstruction--compression trade-off.
-
-**Why it helps:** reconstruction encourages $F$ to retain information needed to
-explain the input, while the prior learns its latent distribution. Under
-well-defined entropy and log-loss, the corresponding bound is:
-
-$$
-  H(X) - \mathcal D \leq I_F(X;Z).
-$$
-
-Beating the optimal input-independent reconstruction log-loss baseline therefore
-requires informative latents. The likelihood family determines which errors
-matter; a fixed-variance isotropic Gaussian gives squared-error loss up to
-scaling and a constant.
-
-**Scope:** this is a candidate for useful representations, not a guarantee
-against collapse or of behavioral usefulness. An expressive decoder can ignore
-$Z$; @alemi2018 show that good ELBO alone does not ensure useful latents.
-Outcomes depend on likelihood, architecture, compression weight, and stimulus
-coverage. Assess rate and distortion separately: positive expected KL alone does
-not establish informative latents because it includes prior mismatch.
+model improvement from stimulus-selection effects. How to acquire $F$ is the
+subject of [Learning informative perceptual representations](perceptual-representations.qmd).
 
 ### Learning progress as reward
 
@@ -372,7 +308,11 @@ $$
   \mathbb E_{p_{\pi_i}}[r_I(Z)]
   =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
 $$
-Thus maximizing intrinsic reward minimizes reverse KL. If an available policy
+Thus maximizing intrinsic reward minimizes reverse KL. When choosing a sampling
+policy, require it to cover every region that contributes to the target gradient.
+Reverse KL alone does not enforce this: a policy can earn finite expected reward
+while never visiting such a region, leaving its prior-gradient estimate biased.
+If an available policy
 can realize $q_\theta^*$, it attains the single-sample variance optimum.
 Otherwise, a smaller reverse KL need not imply smaller variance. The result
 does not account for correlations between successive updates or establish
@@ -428,10 +368,6 @@ is not currently part of the model.
 
 ## Open questions
 
-- **Useful representation:** should initial experiments freeze a previously
-  useful encoder or jointly learn it with the candidate VAE objective? Which
-  likelihood, architecture, and rate--distortion trade-off preserve useful
-  information?
 - **Objective:** how should capacity, complexity cost, and reward be combined
   and weighted?
 - **Latent model:** which normalized density family captures the regularities
