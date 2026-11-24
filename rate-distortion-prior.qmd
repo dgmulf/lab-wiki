@@ -7,7 +7,10 @@ execute:
   echo: false
 ---
 
-**The idea:** learning a latent prior can lower the variational coding cost toward the rate–distortion curve without changing what an encoder retains. This example makes the prior-mismatch term in the [aesthetics model](computational-aesthetics.qmd#measuring-information) visible.
+::: {#key-ideas .callout-note title="Key ideas"}
+- Learning a latent prior can lower the variational coding cost toward the rate–distortion curve without changing what a fixed encoder retains.
+- This binary example makes the prior-mismatch term in [Perceptual representations and efficient encoding](perceptual-representations.qmd#measuring-information) visible, and shows that positive variational coding cost alone does not imply an informative latent.
+:::
 
 ## A binary example
 
@@ -112,7 +115,7 @@ $$
 +\underbrace{D_{\mathrm{KL}}(q_F\Vert R_\theta)}_{\text{prior mismatch}}.
 $$
 
-Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic reward.
+Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic preference.
 :::
 
 ## References

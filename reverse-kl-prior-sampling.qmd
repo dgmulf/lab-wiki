@@ -1,0 +1,151 @@
+---
+title: "Reverse-KL intrinsic reward for prior sampling"
+description: "An alternative intrinsic-reward formulation that optimizes the behavioral sampling policy by minimizing reverse KL on latent marginals."
+---
+
+::: {#key-ideas .callout-note title="Key ideas"}
+- As an alternative to the trajectory-level vanilla BPO formulation in the
+  [computational model of aesthetics](computational-aesthetics.qmd), the
+  intrinsic policy can be trained via reinforcement learning with a step-wise
+  intrinsic reward defined over policy-induced latent marginals.
+- Maximizing the expected intrinsic reward under the intrinsic policy minimizes
+  reverse KL divergence from its latent marginal to the single-sample
+  variance-optimal importance proposal for the perceptual prior gradient, though
+  reverse KL alone does not enforce support coverage or guarantee lower variance
+  under restricted policy classes.
+- Because the ratio of extrinsic to intrinsic latent marginals is unknown, this
+  approach requires estimating that density ratio—for instance via
+  least-squares importance fitting with running feature averages from extrinsic
+  trajectories—and estimation error affects both the reward and the prior
+  update.
+:::
+
+## Relation to the parent model
+
+In the [computational model of aesthetics](computational-aesthetics.qmd), the
+extrinsically motivated policy $\pi_e$ optimizes ordinary task return and
+determines the latent distribution that the perceptual prior $R_\theta$ should
+predict, while the intrinsically motivated policy $\pi_i$ acts as the behavioral
+policy collecting samples to estimate the prior gradient. The parent page's
+primary candidate model optimizes $\pi_i$ using trajectory-level vanilla
+[behavioral policy optimization (BPO)](behavioral-policy-optimization.qmd)
+[@papini2024], which minimizes forward KL via weighted cross-entropy over full
+trajectories using known action-probability ratios.
+
+This page develops an alternative formulation that operates on single-step
+latent marginals $p_\pi(z)$ instead of trajectory distributions and trains
+$\pi_i$ with an explicit intrinsic reward $r_I(z)$.
+
+## Candidate reward: selecting efficient learning samples
+
+For either policy $\pi \in \{\pi_e,\pi_i\}$, let $p_\pi(z)$ be the marginal
+distribution of a latent sampled along its trajectory. For example, run the
+policy for a fixed number of transitions and sample one transition uniformly.
+Use the same time weighting and initial conditions for both policies. Hold
+$\pi_e$, the fixed encoder $F$, and the current prior parameters $\theta$ fixed
+when comparing intrinsic policies.
+
+The target loss and the gradient contributed by one latent are
+
+$$
+  L(\theta)=\mathbb E_{p_{\pi_e}}[-\log R_\theta(Z)],\qquad
+  g_\theta(z)=\nabla_\theta[-\log R_\theta(z)].
+$$
+
+For a latent from an intrinsic trajectory, the importance-weighted estimate is
+
+$$
+  \widehat g(Z)=w(Z)g_\theta(Z),\qquad
+  w(z)=\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
+$$
+
+The denominator measures how often $\pi_i$ encounters the latent across its
+trajectory. If $\pi_i$ samples wherever $p_{\pi_e}(z)g_\theta(z)$ is nonzero,
+then $\mathbb E_{p_{\pi_i}}\widehat g=\nabla_\theta L$. Among unrestricted
+proposals, the one minimizing the sum of the component variances of this
+single-sample estimate is [@alain2016, Theorem 1]
+
+$$
+  q_\theta^*(z)=\frac{p_{\pi_e}(z)\|g_\theta(z)\|_2}{C_\theta},\qquad
+  C_\theta=\mathbb E_{p_{\pi_e}}\|g_\theta(Z)\|_2.
+$$
+
+Assume $0<C_\theta<\infty$ and finite estimator second moments. Relative to
+their frequency under $\pi_e$, latents that give larger prior gradients should
+be sampled more often.
+
+**Why reverse KL?** Vanilla BPO fits the behavioral policy using forward KL from
+the optimal proposal to the behavioral distribution. Reversing those arguments
+places the expectation under the policy collecting the rewards. On an intrinsic
+trajectory, assign each observed latent the reward
+
+$$
+  r_I(z)=\log\|g_\theta(z)\|_2
+       +\log\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
+$$
+
+Its expected trajectory average is
+
+$$
+  \mathbb E_{p_{\pi_i}}[r_I(Z)]
+  =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
+$$
+
+Thus maximizing intrinsic reward minimizes reverse KL. When choosing a sampling
+policy, require it to cover every region that contributes to the target
+gradient. Reverse KL alone does not enforce this: a policy can earn finite
+expected reward while never visiting such a region, leaving its prior-gradient
+estimate biased. If an available policy can realize $q_\theta^*$, it attains the
+single-sample variance optimum. Otherwise, a smaller reverse KL need not imply
+smaller variance. The result also does not account for correlations between
+successive prior updates.
+
+## Candidate estimator: running latent feature averages {#sec-feature-ema}
+
+The two marginals need not be estimated separately. Least-squares importance
+fitting [@kanamori2009, sec. 2.2] estimates their ratio by minimizing
+
+$$
+  \mathcal L(w)=\tfrac12\mathbb E_{p_{\pi_i}}[w(Z)^2]
+                   -\mathbb E_{p_{\pi_e}}[w(Z)].
+$$
+
+When the target marginal is supported by the sampling marginal and their ratio
+has finite second moment, this differs from the mean squared error under
+$p_{\pi_i}$ by a constant and a factor of one half.
+
+For a feature model $w_\eta(z)=\eta^\top f(z)$, maintain an exponential moving
+average $m_e$ of the fixed features $f(z)$ **from extrinsic trajectories only**.
+Then $\eta^\top m_e$ estimates the second expectation; intrinsic trajectory
+samples supply the first. For example, one-hot features retain category
+frequencies, whereas the mean of a continuous latent alone cannot distinguish
+two distributions with the same mean but different tails.
+
+On an intrinsic trajectory, use the pre-update ratio estimate in two ways: add
+$\log w_\eta(z)$ to the log gradient norm for the reward, and multiply
+$g_\theta(z)$ by $w_\eta(z)$ for the prior update. The logarithms require
+positive weights and gradient norms for finite rewards. Restricting the feature
+model to positive ratios or flooring estimates for numerical stability can
+introduce approximation error. Limited features, correlated samples, and changes
+in either policy can also make the estimated weights inaccurate.
+
+## Open questions
+
+- **Importance ratio:** for the feature EMA candidate, which fixed features,
+  positivity constraints, and learning timescales yield accurate weights? How
+  much bias arises from correlated experience and marginal drift, and when does
+  weighting outperform unweighted prior learning?
+- **KL and gradient variance:** sharing a global optimum does not guarantee that
+  gradient-estimator variance increases monotonically with
+  $D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*)$. Under what additional conditions
+  does reducing this KL reduce variance and improve learning? Restrictions on
+  attainable latent distributions can also make the KL-optimal and
+  variance-optimal policies differ.
+- **RL nonstationarity:** how should the RL time horizon and update schedule
+  handle an intrinsic reward $r_I(z)$ that changes with both $\theta$ and the
+  marginal ratio $p_{\pi_e}(z)/p_{\pi_i}(z)$?
+
+## References
+
+::: {#refs}
+:::

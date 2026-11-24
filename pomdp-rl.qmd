@@ -1,11 +1,21 @@
 ---
 title: "Reinforcement learning under partial observability"
 description: "Perceptual representations, memory, and attention in partially observable Markov decision processes."
+toc-depth: 3
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- In a partially observable Markov decision process (POMDP), an agent must choose actions without directly observing the full state. Past observations can matter even when the current input looks the same.
-- Learning what an encoder retains and learning how often its outputs occur are different problems. The projects below study each in turn.
+- In a partially observable Markov decision process (POMDP), an agent cannot
+  observe the full hidden state directly and acts from a perceptual latent and
+  compressed memory, using movement and attentional actions that shape
+  subsequent sensory inputs.
+- Separating sensory encoding, memory updates, and action selection provides a
+  shared POMDP agent architecture across the projects below; in the
+  first-version scope, the observation model and encoder take no explicit
+  temporal-history input while the policy conditions on memory.
+- Learning informative, capacity-limited perceptual representations and
+  optimizing how an agent samples experience to fit a perceptual prior are
+  distinct problems studied on separate pages.
 :::
 
 ## From observations to actions
@@ -22,12 +32,130 @@ chooses an action from $(z_t,h_t)$: it might look back toward the remembered
 object even though the current view gives no indication of its location. This
 internal state need not retain everything needed for an optimal decision.
 
+## Model components
+
+The components below define the shared POMDP agent architecture used across the
+projects on this site.
+
+| Component | Role |
+| --- | --- |
+| Action policy $\pi$ | Selects movement and attention from perceptual latent $z$ and memory $h$; specialized models may split this into extrinsic ($\pi_e$) and intrinsic ($\pi_i$) policies. |
+| Transition model $T$ | Updates the hidden state $s$, including attentional and sensor configuration. |
+| Observation density $E$ | Generates sensory input $X$ from hidden state $S$. |
+| Perceptual channel $F$ | Encodes sensory input $X$ as latent representation $Z$. |
+| Memory update $U$ | Summarizes past latents and actions into memory $h$ for the policy. |
+
+**Information flow:** sensory input $x_t$ → perceptual channel $F$ → current
+latent $z_t$ and memory $h_t$ → action $a_t$ under $\pi$ → state transition $T$
+→ next sensory input $x_{t+1}$.
+
+**First-version scope:** the observation density $E$ and perceptual encoder $F$
+take no explicit temporal-history input, even though the policy $\pi$ uses
+memory $h_t$. Learning also accumulates past experience in model parameters.
+Future extensions may condition $F$ (and any learned perceptual prior) on
+memory.
+
+### Attention
+
+Actions have movement and attentional dimensions:
+
+$$
+  a_t = (a_t^{\mathrm{move}},a_t^{\mathrm{att}}),
+  \qquad \mathcal A = \mathcal A_{\mathrm{move}} \times \mathcal A_{\mathrm{att}}.
+$$
+
+This follows the camera/manipulator action-space construction in @weng2024
+[sec. III], generalized here to movement and attention. An agent can move while
+redirecting gaze or internal attentional focus. Both dimensions can affect
+sensory input. Factoring the action space does not assume independent controls:
+we use a joint policy over the pair.
+
+Write $\pi$ for whichever policy generates the trajectory. It acts on the
+current perceptual latent $z_t$ and memory $h_t$:
+
+$$
+  a_t \sim \pi(\cdot \mid z_t,h_t),
+  \qquad h_{t+1} = U(h_t,z_t,a_t).
+$$
+
+Here $h_t$ summarizes experience before the current latent, with an initial
+memory $h_0$. The update stores information from the current latent and action
+for the next decision. The policy has no direct access to the hidden state
+$s_t$. This use of an internal representation of experience is consistent with
+the agent-state approach of @hu2025 [sec. 3]; our particular split into a
+perceptual latent and memory is a modeling choice. A compressed memory is not
+automatically a sufficient statistic or an exact belief state.
+
+### Stimuli as consequences of actions
+
+Let $s_t$ be the hidden Markov state of the agent--environment system, drawn
+initially from a state distribution $\mu_0$. It fully specifies the external
+scene and the attentional and sensor configuration. Following the
+observation-density notation of @hu2025 [sec. 3], the interaction is
+
+$$
+  x_t \sim E(\cdot \mid s_t),\qquad z_t \sim F(\cdot \mid x_t),
+$$
+$$
+  a_t \sim \pi(\cdot \mid z_t,h_t),\qquad
+  s_{t+1} \sim T(\cdot \mid s_t,a_t).
+$$
+
+The next input is then $x_{t+1}\sim E(\cdot\mid s_{t+1})$. We retain $x$ for
+sensory input, corresponding to the observation $o$ in robotics. The observation
+density $E(x\mid s)$ has no additional action dependence: actions change what is
+perceived by changing state, including sensor or attentional configuration.
+For example, turning the eyes changes the retinal input even if the scene stays
+still. $E$ describes input generation; $F$ describes its subsequent encoding.
+Neither requires a temporal-history input in this first version, even though
+the policy uses memory.
+
+The resulting stimulus distribution conditioned on state and action is
+
+$$
+  p(x' \mid s,a) = \int T(s' \mid s,a)E(x' \mid s')\,ds'.
+$$
+
+Primes denote the next time step. Integrals become sums for discrete variables.
+A stimulus is sampled from this distribution; the policy selects the action
+that influences it. Consequently, the distribution of sensory inputs available
+for perceptual learning depends on the policy that generates the trajectory and
+on which observations supply samples.
+
+### Perceptual channel
+
+The perceptual channel maps sensory input $x$ to an internal latent
+representation $z$:
+
+$$
+  F(z \mid x) = P(Z = z \mid X = x).
+$$
+
+Because actions depend on $z_t$ and $h_t$ rather than directly on $x_t$ or $s_t$,
+the encoder controls which sensory distinctions are available to the policy and
+memory update. How $F$ can be learned and how a perceptual prior controls its
+coding complexity under limited capacity are developed in [Perceptual
+representations and efficient encoding](perceptual-representations.qmd).
+
+### Open architectural questions
+
+- **Attention--perception interface:** how do movement and attentional controls
+  change state through $T$, and sensory input through $E$?
+- **Policy memory:** what should $U$ retain in $h_t$ to support decisions from
+  $(z_t,h_t)$ under partial observability?
+
 ## Research questions
 
-- [Learning informative perceptual representations](perceptual-representations.qmd):
-  which distinctions should the encoder preserve? Predictive learning and
-  reconstruction offer different training signals; neither by itself establishes
-  that the result supports good decisions.
+- [Perceptual representations and efficient encoding](perceptual-representations.qmd):
+  which distinctions should the encoder $F$ preserve, and how does learning a
+  perceptual prior $R_\theta$ reduce variational coding cost under limited
+  capacity?
 - [Computational model of aesthetics](computational-aesthetics.qmd): given a
-  useful encoder, can learning the distribution of its outputs reduce coding
-  cost? The model asks whether progress in learning that prior rewards attention.
+  fixed useful encoder, how might an agent optimize a behavioral policy to
+  sample the gradient of that perceptual prior, and how could that optimization
+  give rise to aesthetic preferences?
+
+## References
+
+::: {#refs}
+:::

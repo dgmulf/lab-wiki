@@ -1,21 +1,41 @@
 ---
-title: "Learning informative perceptual representations"
-description: "Predictive and reconstruction objectives for perceptual encoders under partial observability."
+title: "Perceptual representations and efficient encoding"
+description: "Representation learning, rate–distortion compression, and the perceptual prior as a mechanism for controlling coding complexity under partial observability."
+toc-depth: 3
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- An encoder must preserve distinctions useful for decisions, not merely produce latents that are easy to predict.
-- Temporal prediction and sensory reconstruction are candidate training signals. Neither avoiding collapse nor achieving a good variational objective guarantees task relevance.
+- Under limited processing capacity, a perceptual encoder must balance retaining
+  distinctions useful for decisions against code complexity; minimizing
+  complexity alone admits an uninformative channel.
+- Temporal prediction and sensory reconstruction are candidate
+  representation-learning objectives, but neither avoiding collapse nor
+  achieving a good variational bound guarantees that the retained distinctions
+  support good decisions.
+- A learned normalized perceptual prior controls variational coding cost: for a
+  fixed encoder and input distribution, improving the prior reduces prior
+  mismatch in the coding bound without changing how much information the
+  representations retain.
 :::
 
-In [reinforcement learning under partial observability](pomdp-rl.qmd), the
-encoder $F(z\mid x)$ determines which distinctions in the sensory input $x$
-reach the policy as a latent $z$. If two observations call for different actions
-given the same memory, mapping both to the same latent distribution leaves the
-policy unable to respond differently. Conversely, preserving every sensory detail
-can expend limited capacity on distinctions that never affect a decision.
+In the [POMDP agent architecture](pomdp-rl.qmd#model-components), the
+perceptual channel $F(z\mid x) = P(Z = z \mid X = x)$ determines which
+distinctions in the sensory input $x$ reach the policy and memory update as a
+latent $z$. If two observations call for different actions given the same
+memory, mapping both to the same latent distribution leaves the policy unable to
+respond differently. Conversely, biological code complexity is assumed to be
+capacity-limited and costly: preserving every sensory detail expends capacity on
+distinctions that never affect a decision.
 
-## Learning by temporal prediction
+Rate--distortion theory frames this trade-off between information retained and
+errors introduced by compression [@sims2016]. Here, information rate serves as a
+proposed surrogate for biological code complexity. Useful information must still
+be enforced through a task-performance or distortion requirement; minimizing
+complexity alone admits an uninformative channel.
+
+## Representation learning
+
+### Learning by temporal prediction
 
 The predictive learning rule studied by @halvagal2023 works in latent space,
 without reconstructing the sensory input. Predictive plasticity brings
@@ -24,39 +44,162 @@ Hebbian plasticity preserves variation in activity and counters collapse.
 Variation alone does not tell us whether the encoder distinguishes situations
 that require different actions.
 
-## Learning by reconstruction
+### Learning by reconstruction
 
 A variational autoencoder adds a decoder $p_\psi(x\mid z)$. On inputs sampled
-from the attended-input distribution $p_{\mathrm{att}}$, let expectations be
-under $p_{\mathrm{att}}(x)F(z\mid x)$. Following @alemi2018 [Eqs. 2--6], define
-reconstruction distortion and coding cost by
+from a policy-induced input distribution $p(x)$, let expectations be under
+$p(x)F(z\mid x)$. Following @alemi2018 [Eqs. 2--6], define reconstruction
+distortion and variational coding cost by
 
 $$
 \mathcal D = \mathbb E[-\log p_\psi(X\mid Z)],\qquad
-\mathcal C = \mathbb E\!\left[\log\frac{F(Z\mid X)}{R_\theta(Z)}\right],
+\mathcal C(F,\theta) = \mathbb E\!\left[\log\frac{F(Z\mid X)}{R_\theta(Z)}\right],
 $$
 
-where $R_\theta$ is a normalized latent prior. Jointly minimizing
+where $R_\theta$ is a normalized perceptual prior. Jointly minimizing
 $\mathcal D+\beta\mathcal C$ over encoder, decoder, and prior trades
 reconstruction fidelity against coding cost for $\beta\geq0$; at $\beta=1$
 the objective is the expected negative ELBO. The likelihood determines which
 errors matter: a fixed-variance isotropic Gaussian gives squared error up to a
 scale factor and a constant.
 
-With well-defined entropy and log-loss, $H(X)-\mathcal D\leq I(X;Z)$.
+With well-defined entropy and log-loss, $H(X)-\mathcal D\leq I_F(X;Z)$.
 Beating the best input-independent reconstruction loss therefore requires
 informative latents. A good ELBO alone does not: an expressive decoder can
 ignore $Z$, and positive coding cost can reflect prior mismatch rather than
 retained information. Evaluate rate and distortion separately, then test whether
 the policy can actually use the retained information on its task.
 
-## Connection to prior learning
+## Efficient encoding and the perceptual prior
 
-Either approach could supply an encoder for the [computational model of
-aesthetics](computational-aesthetics.qmd). That model freezes an already-useful
-encoder to isolate learning of the latent prior. Joint training instead changes
-the latent target itself. Which training stimuli, likelihood, architecture, and
-compression weight preserve useful distinctions remains an empirical question.
+### Perceptual prior
+
+The learned model $R_\theta(z)$, also called the latent prior, describes which
+perceptual representations are likely. In the first-version scope it captures
+structure within a representation without predicting the next time step from
+previous latents or actions: its parameters $\theta$ accumulate learning
+experience, but temporal history is not an explicit input.
+
+$R_\theta$ must be a normalized probability mass function or density, not an
+arbitrary scalar score. Latent surprise (negative log-likelihood) is:
+
+$$
+  \ell_\theta(z) = -\log R_\theta(z).
+$$
+
+This first version implements latent density learning. Interpreting it as a
+component of a biological world model remains a hypothesis.
+
+### Measuring information
+
+Mutual information measures how much the latent representation tells us about
+sensory input. Expected KL divergence---a measure of difference between
+distributions---provides an upper bound on this information rate.
+
+Under the joint distribution $p(x)F(z \mid x)$, the aggregate latent
+distribution is:
+
+$$
+  q_F(z) = \int p(x)F(z \mid x)\,dx.
+$$
+
+The variational rate identity underlying @alemi2018 gives:
+
+$$
+  \mathcal C(F,\theta)
+  = \mathbb E_X D_{\mathrm{KL}}\big(F(\cdot \mid X)\Vert R_\theta\big)
+$$
+
+$$
+  \mathcal C(F,\theta) = I_F(X;Z) + D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)
+                       \ge I_F(X;Z).
+$$
+
+**Interpretation:** expected KL equals information rate plus prior mismatch. For
+fixed $F$ and $p(x)$, an unrestricted optimal prior matches $q_F$ and makes the
+bound tight. A restricted learned prior may leave a positive gap.
+
+Learning $R_\theta$ reduces prior mismatch, not the information retained by a
+fixed encoder under a fixed input distribution. Improved coding efficiency is
+the proposed biological interpretation; actual savings require a mechanism that
+exploits the learned distribution. The bound alone does not establish such a
+mechanism in organisms.
+
+### Capacity constraint and complexity penalty
+
+**Visual example:** [Rate--distortion and prior
+mismatch](rate-distortion-prior.qmd) shows how learning the prior closes a KL
+gap above a rate--distortion curve while holding the encoder fixed.
+
+Suppose the information rate is bounded by capacity $K$:
+
+$$
+  I_F(X;Z) \le K.
+$$
+
+Imposing the tractable variational bound $\mathcal C(F,\theta) \le K$ is
+sufficient to respect that capacity limit, but it can be conservative when the
+prior is mismatched. For a fixed encoder and input distribution, improving the
+prior fit lowers $\mathcal C(F,\theta)$ toward $I_F(X;Z)$ without changing the
+information rate itself. Controlling code complexity through $\mathcal C$
+therefore motivates learning an accurate perceptual prior $R_\theta$ alongside
+or after acquiring $F$.
+
+**Technical conditions:** finite KL requires appropriate prior support and a
+well-defined rate; base-2 logs yield bits and natural logs yield nats. For
+continuous representations, deterministic encoders may require noise or
+quantization to obtain a finite information rate.
+
+### Isolating prior learning with a fixed encoder
+
+When training $F$ and $R_\theta$ jointly (as in $\mathcal D + \beta \mathcal C$),
+updates to $F$ change the latent distribution $q_F$ that the prior must match.
+To study prior learning on its own, assume $F$ has already learned useful
+representations on a task, freeze its parameters (a stop-gradient equivalent),
+and train only $R_\theta$. Freezing $F$ prevents encoder collapse during this
+phase: the prior cannot reduce $\mathcal C$ by making $F$ discard distinctions.
+
+For a fixed input distribution, prior learning then reduces only the mismatch
+term $D_{\mathrm{KL}}(q_F\Vert R_\theta)$ while $I_F(X;Z)$ remains fixed.
+Because changing which stimuli are attended changes the input distribution
+$p(x)$, updating $R_\theta$ from trajectories collected under a different policy
+requires correcting for that distribution shift back to the target policy. How an
+agent might optimize a behavioral policy to sample trajectories for learning
+$R_\theta$ is the subject of the [computational model of
+aesthetics](computational-aesthetics.qmd).
+
+### Future extension: temporal conditioning
+
+The POMDP policy already uses memory $h_t$. A future extension would also
+condition the encoder and perceptual prior on that memory:
+
+$$
+  F(z_t \mid x_t,h_t),\qquad R_\theta(z_t \mid h_t).
+$$
+
+The information-rate formulation would then use $I_F(X;Z \mid H)$, with a
+corresponding conditional prior-mismatch term. This could capture sequence
+expectations and order effects, though it is not required for the first version;
+context choice and its availability to encoding and decoding processes would
+need to be specified.
+
+@lai2025 provide behavioral evidence for conditional policy compression,
+measuring state-to-action information $I(S_t;A_t \mid S_{t-1})$. Applying that
+principle to a perceptual channel is a proposed extension, not direct evidence
+for a perceptual capacity bound. A separate action-policy complexity penalty is
+not currently part of the model.
+
+## Open questions
+
+- **Encoder training:** which training stimuli, likelihood, architecture, and
+  compression weight $\beta$ preserve distinctions useful for downstream
+  decisions?
+- **Objective weighting:** how should capacity constraints, complexity cost, and
+  task performance be combined and weighted?
+- **Perceptual prior family:** which normalized density family captures the
+  regularities organisms learn?
+- **Temporal extension:** when should the encoder and perceptual prior also
+  condition on memory $h_t$, and what information should that memory contain?
 
 ## References
 
