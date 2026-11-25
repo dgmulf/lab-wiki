@@ -4,15 +4,23 @@ description: "Perceptual representations, memory, and attention in partially obs
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- In a partially observable Markov decision process (POMDP), an agent must choose actions without directly observing the full state. Past observations can matter even when the current input looks the same.
+- We use a partially observable Markov decision process (POMDP) as a biological model: an organism acts on sensory evidence and memory, not on direct knowledge of the world's state.
 - Learning what an encoder retains and learning how often its outputs occur are different problems. The projects below study each in turn.
 :::
 
 ## From observations to actions
 
-A policy seeks to maximize expected cumulative reward. In a POMDP it receives
-an observation $x_t$ generated from the hidden state $s_t$. Its action $a_t$
-affects the next state and hence what it can observe next. For example, looking
+The biological question is how an organism decides where to look or move
+when its senses reveal only part of its surroundings. The encoder, memory,
+and policy describe functions that a nervous system would need to perform,
+without specifying the circuits that perform them.
+
+A policy seeks to maximize expected cumulative reward. At time $t$, the
+observation kernel $E$ gives the distribution of the observation given the
+hidden state: $x_t \sim E(\cdot \mid s_t)$. After the agent chooses $a_t$,
+the environment transition kernel $T$ gives the distribution of the next
+state: $s_{t+1} \sim T(\cdot \mid s_t,a_t)$. The next observation is then
+drawn from $E(\cdot \mid s_{t+1})$. For example, looking
 away from an object removes it from view without necessarily removing it from
 the scene.
 
@@ -24,10 +32,11 @@ internal state need not retain everything needed for an optimal decision.
 
 ## Research questions
 
-- [Learning informative perceptual representations](perceptual-representations.qmd):
-  which distinctions should the encoder preserve? Predictive learning and
-  reconstruction offer different training signals; neither by itself establishes
-  that the result supports good decisions.
+- [Representation learning and efficient perceptual encoding](perceptual-representations.qmd):
+  which distinctions should the encoder preserve, and at what cost? Predictive
+  learning and reconstruction offer different training signals; a learned
+  perceptual prior can reduce coding overhead for the distinctions retained.
 - [Computational model of aesthetics](computational-aesthetics.qmd): given a
-  useful encoder, can learning the distribution of its outputs reduce coding
-  cost? The model asks whether progress in learning that prior rewards attention.
+  useful encoder, which experiences should an agent seek to learn how often
+  its outputs occur during a task? The model asks whether optimizing that
+  sampling policy can explain preferences in movement and attention.

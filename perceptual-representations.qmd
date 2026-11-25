@@ -1,11 +1,12 @@
 ---
-title: "Learning informative perceptual representations"
-description: "Predictive and reconstruction objectives for perceptual encoders under partial observability."
+title: "Representation learning and efficient perceptual encoding"
+description: "Which distinctions a perceptual encoder retains and how a learned prior controls their coding cost."
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
 - An encoder must preserve distinctions useful for decisions, not merely produce latents that are easy to predict.
 - Temporal prediction and sensory reconstruction are candidate training signals. Neither avoiding collapse nor achieving a good variational objective guarantees task relevance.
+- We propose that an organism uses $\mathcal C$ to estimate the minimum realizable cost of communicating what its latents convey about sensory input. A mismatched prior overestimates that minimum; a matched prior gives the mutual information $I(X;Z)$ exactly.
 :::
 
 In [reinforcement learning under partial observability](pomdp-rl.qmd), the
@@ -50,7 +51,40 @@ ignore $Z$, and positive coding cost can reflect prior mismatch rather than
 retained information. Evaluate rate and distortion separately, then test whether
 the policy can actually use the retained information on its task.
 
-## Connection to prior learning
+## Efficient encoding with a perceptual prior {#efficient-encoding}
+
+Transmitting a perceptual distinction to the circuits that use it consumes
+physical resources. The biological hypothesis is that $\mathcal C$ approximates
+the minimum realizable cost of conveying what the latent represents about the input.
+
+To see why the prior matters for this estimate, let $q_F(z)$ be the
+frequency (or density) of latent $z$ when inputs come from $p_{\mathrm{att}}$
+and are encoded by $F$. The coding cost above decomposes as [@alemi2018]
+$$
+\mathcal C
+= I(X;Z) + D_{\mathrm{KL}}\!\left(q_F\Vert R_\theta\right).
+$$
+For a fixed encoder and input distribution, $I(X;Z)$ is the minimum over
+all priors: the mismatch term is nonnegative and vanishes when $R_\theta=q_F$.
+Fitting the prior therefore tightens the estimate from above without changing
+the minimum. For discrete latents at that minimum,
+$\mathcal C=H(Z)-H(Z\mid X)$. Subtracting the conditional entropy matters.
+If the encoder outputs a fair coin flip independently of the input, specifying
+the outcome takes one bit, but it conveys no information about the input.
+With a matched prior, $\mathcal C$ is therefore zero.
+
+When **training the encoder**, penalizing $\mathcal C$ trades the benefit of
+preserving a distinction against its estimated communication cost. Although
+$\mathcal C$ bounds retained information from above, its role here is to price
+that cost. A distortion or task objective must still specify what
+is worth keeping; a constant latent would be cheap but uninformative. When
+**training only the prior**, with the encoder and input distribution fixed,
+neither the representations nor $I(X;Z)$ change. Minimizing expected latent
+negative log-likelihood then minimizes only the mismatch term, which vanishes
+if $R_\theta=q_F$. The [binary rate–distortion example](rate-distortion-prior.qmd)
+shows the coding bound falling while reconstruction error stays fixed.
+
+## Connection to aesthetic preferences
 
 Either approach could supply an encoder for the [computational model of
 aesthetics](computational-aesthetics.qmd). That model freezes an already-useful

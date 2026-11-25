@@ -1,0 +1,84 @@
+---
+title: "A reverse-KL model of aesthetic preferences"
+description: "An intrinsic reward for sampling individual perceptual-prior gradients."
+---
+
+::: {#key-ideas .callout-note title="Key ideas"}
+- The intrinsic policy seeks individual latents that efficiently estimate the prior gradient under the extrinsic policy.
+- A log gradient norm plus a log latent-frequency ratio gives a reward whose expectation minimizes reverse KL to the optimal single-latent proposal.
+- Running feature averages from extrinsic experience can help estimate the ratio without fitting two latent densities.
+:::
+
+Unlike the [trajectory BPO candidate](computational-aesthetics.qmd), this
+model treats one latent as the sampling unit. Let $p_{\pi_e}(z)$ and
+$p_{\pi_i}(z)$ be the latent marginals under task and intrinsic behavior.
+Use the same initial conditions and time weighting for both: for example,
+draw one time step uniformly from a fixed-length trajectory. Hold the
+encoder, extrinsic policy, and current prior fixed when comparing samplers.
+
+## From a sampling distribution to a reward
+
+The target loss and the gradient contributed by one latent are
+$$
+  L(\theta)=\mathbb E_{p_{\pi_e}}[-\log R_\theta(Z)],\qquad
+  g_\theta(z)=\nabla_\theta[-\log R_\theta(z)].
+$$
+For a latent from an intrinsic trajectory the estimate is
+$\widehat g(z)=w(z)g_\theta(z)$, with
+$w(z)=p_{\pi_e}(z)/p_{\pi_i}(z)$. It is unbiased if the sampler covers every
+region contributing to the target gradient. The unrestricted proposal minimizing
+the sum of the component variances is [@alain2016, Theorem 1]
+$$
+  q_\theta^*(z)=p_{\pi_e}(z)\|g_\theta(z)\|_2/C_\theta,\qquad
+  C_\theta=\mathbb E_{p_{\pi_e}}\|g_\theta(Z)\|_2.
+$$
+Assume $0<C_\theta<\infty$ and finite estimator second moments.
+
+BPO uses forward KL from the optimal proposal to the behavioral distribution.
+Reversing the arguments puts the expectation under the policy collecting the
+reward. Assign each observed latent
+$$
+  r_I(z)=\log\|g_\theta(z)\|_2+\log w(z).
+$$
+Substituting $q_\theta^*$ gives
+$$
+  \mathbb E_{p_{\pi_i}}[r_I(Z)]
+  =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
+$$
+Thus maximizing expected reward fits the intrinsic latent marginal by reverse
+KL. Coverage still requires a separate constraint: a policy can earn finite
+reward while never visiting a contributing region. If the policy can realize
+$q_\theta^*$ it attains the single-sample variance optimum. Otherwise a smaller
+reverse KL need not imply smaller variance. Nor does the single-sample result
+account for correlations among successive latents or measure actual learning
+progress.
+
+## Candidate estimator: running latent feature averages {#sec-feature-ema}
+
+Least-squares importance fitting [@kanamori2009, sec. 2.2] estimates the
+ratio directly by minimizing
+$$
+  \mathcal L(w)=\tfrac12\mathbb E_{p_{\pi_i}}[w(Z)^2]
+                   -\mathbb E_{p_{\pi_e}}[w(Z)].
+$$
+When the target marginal is supported by the sampling marginal and the ratio
+has finite second moment, this is half the mean squared ratio error under
+$p_{\pi_i}$ up to an additive constant.
+
+For $w_\eta(z)=\eta^\top f(z)$, maintain an exponential moving average $m_e$
+of fixed features $f(z)$ **from extrinsic trajectories only**. Then
+$\eta^\top m_e$ estimates the second expectation; intrinsic samples supply
+the first. One-hot features retain category frequencies, whereas the mean of
+a continuous latent alone cannot distinguish distributions with the same
+mean but different tails.
+
+On an intrinsic trajectory use the pre-update $w_\eta(z)$ twice: add its log
+to the log gradient norm for the reward, and multiply $g_\theta(z)$ by it for
+the prior update. Finite rewards require positive weights and gradient norms.
+Flooring estimates can introduce bias. Limited features, correlated samples,
+and policy drift may also compromise the estimate.
+
+## References
+
+::: {#refs}
+:::

@@ -1,415 +1,99 @@
 ---
 title: "Computational model of aesthetics"
-description: "Attention, perceptual compression, and learning progress as aesthetic reward."
-toc-depth: 3
+description: "Aesthetic preferences as a policy for sampling perceptual-prior gradients."
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- The model proposes that beauty rewards learning progress:
-  attention returns to experiences that help the organism learn which perceptual
-  representations are likely.
-- With the encoder and input distribution fixed, a better prediction of those
-  representations reduces the mismatch in the coding bound without changing
-  how much information the representations retain.
-- The extrinsic policy determines which latents the perceptual prior should
-  predict. The intrinsic policy seeks samples that train that prior efficiently:
-  its expected intrinsic reward minimizes reverse KL from its latent marginal
-  to the variance-optimal importance proposal for the prior gradient.
+- Aesthetic preferences may arise from optimizing how an agent moves and directs attention to collect samples for learning a perceptual prior.
+- The extrinsic task policy determines which latents the prior should predict. The intrinsic policy determines which trajectories the agent samples to estimate the gradient of that prediction loss.
+- The primary candidate uses vanilla behavioral policy optimization (BPO): it fits the intrinsic policy to a trajectory distribution that favors large gradients of the total latent negative log-likelihood.
 :::
 
-## Overview
+## What counts as a preference?
 
-Within the [POMDP research project](pomdp-rl.qmd), this model takes a useful
-perceptual encoder as given and asks what the organism gains by learning the
-frequency of its outputs. It proposes that beauty helps guide attention toward experiences from
-which an organism can learn. As its model of perceptual representations
-improves, a sense of beauty acts as an internal reward that encourages
-attention. Perception encodes sensory information under limited processing
-capacity; learning the distribution of these representations can reduce the cost
-of coding them.
+An agent looking at a painting can return its gaze to a detail or move on.
+Both choices affect what it sees next. The hypothesis is that a repeatable
+preference for one choice over the other can emerge from training the policy
+that collects experience for perceptual learning. The model is about choices:
+it does not require a stimulus to carry a beauty score or the agent to register
+how much it learned after each glance.
 
-**First-version scope:** the encoder and latent probability model have no
-explicit temporal-history input. The action policy uses current perceptual
-latents and memory. Learning also accumulates past experience in model
-parameters. Future models may condition the encoder and latent prior on memory.
+In the [partially observable environment](pomdp-rl.qmd), a fixed
+[perceptual encoder](perceptual-representations.qmd) maps input $x_t$ to a
+latent $z_t$. Both policies select movement and attention using $z_t$ and a
+memory $h_t$ of earlier experience. Their roles differ: the extrinsic policy
+$\pi_e$ pursues task return, while the intrinsic policy $\pi_i$ collects
+experience for estimating what the prior should learn under $\pi_e$.
 
-**Model status:** conceptual hypothesis. The mathematical information bound is
-distinct from the proposed biological interpretation and aesthetic mechanism.
+The [efficient encoding account](perceptual-representations.qmd#efficient-encoding)
+motivates fitting a normalized prior $R_\theta(z)$ to the encoder's outputs.
+Here the target is the distribution of latents encountered during the task.
+Sampling with $\pi_i$ changes how the prior gradient is estimated, not which
+distribution the prior is meant to fit.
 
-## Model components
+## Primary candidate: BPO over trajectories
 
-| Component | Role |
-| --- | --- |
-| Action policies $\pi_e$, $\pi_i$ | Both select movement and attention from latent $z$ and memory $h$; $\pi_e$ seeks task reward and $\pi_i$ seeks intrinsic reward. |
-| Transition model $T$ | Updates the hidden state, including attentional and sensor configuration. |
-| Observation density $E$ | Generates sensory input $X$ from state $S$. |
-| Perceptual channel $F$ | Encodes sensory input $X$ as latent representation $Z$. |
-| Memory update $U$ | Summarizes past latents and actions for the policy. |
-| Latent model $R_\theta$ | Assigns a normalized probability distribution to perceptual latents. |
-| Importance estimator $w_\eta$ | Estimates the ratio of extrinsic to intrinsic latent frequencies. |
-| Intrinsic reward $r_I$ | Guides $\pi_i$ toward samples informative for learning the prior; its interpretation as aesthetic learning progress is a hypothesis. |
-
-**Information flow:** sensory input → $F$ → current latent and memory → action
-under $\pi$ → state transition → next sensory input. Learning from the latents
-provides the proposed aesthetic reward.
-
-### Attention
-
-Actions have movement and attentional dimensions:
-
+Let $P_e$ and $P_i$ denote the trajectory laws of the two policies, with the
+same horizon, initial conditions, and environment. For a realized trajectory
+$\tau$ with latent sequence $z_{1:T}$, define
 $$
-  a_t = (a_t^{\mathrm{move}},a_t^{\mathrm{att}}),
-  \qquad \mathcal A = \mathcal A_{\mathrm{move}} \times \mathcal A_{\mathrm{att}}.
+L_\theta(\tau)=-\sum_{t=1}^T\log R_\theta(z_t),\qquad
+G_\theta(\tau)=\nabla_\theta L_\theta(\tau).
 $$
+The prior scores each latent without conditioning on history; the samples
+need not be independent. Differentiate with respect to the **prior parameters**,
+holding the trajectory fixed. Add the gradient vectors before taking their
+norm: two glances can each produce a large gradient yet largely cancel in the
+trajectory total.
 
-This follows the camera/manipulator action-space construction in @weng2024
-[sec. III], generalized here to movement and attention. An agent can move while
-redirecting gaze or internal attentional focus. Both dimensions can affect
-sensory input. Factoring the action space does not assume independent controls:
-we use a joint policy over the pair.
+The target is $\mathbb E_{P_e}G_\theta$. A trajectory sampled under $\pi_i$
+contributes $(P_e(\tau)/P_i(\tau))G_\theta(\tau)$ to its estimate. For shared
+environment dynamics and memory updates the ratio is the product of the target
+to sampling policy action-probability ratios along the trajectory. The estimate
+is unbiased if the sampling policy covers all contributing target trajectories
+and the expectation exists.
 
-Write $\pi$ for whichever policy generates the trajectory. It acts on the
-current perceptual latent $z_t$ and memory $h_t$:
-
+[Vanilla BPO](behavioral-policy-optimization.qmd) [@papini2024] fits a policy
+to the variance-optimal importance proposal. Here the vector being estimated
+is the prior gradient rather than a task-return policy gradient. Holding
+$\theta$ and $\pi_e$ fixed for the fit, the proposal and policy objective are
 $$
-  a_t \sim \pi(\cdot \mid z_t,h_t),
-  \qquad h_{t+1} = U(h_t,z_t,a_t).
+Q_\theta^*(\tau)=
+\frac{P_e(\tau)\|G_\theta(\tau)\|_2}{\mathbb E_{P_e}\|G_\theta\|_2},
+\qquad
+\min_\phi D_{\rm KL}\!\left(Q_\theta^*\Vert P_{\pi_{i,\phi}}\right).
 $$
-
-Here $h_t$ summarizes experience before the current latent, with an initial
-memory $h_0$. The update stores information from the current latent and action
-for the next decision. The policy has no direct access to the hidden state
-$s_t$. This use of an internal representation of experience is consistent with
-the agent-state approach of @hu2025 [sec. 3]; our particular split into a
-perceptual latent and memory is a modeling choice. A compressed memory is not
-automatically a sufficient statistic or an exact belief state.
-
-### Stimuli as consequences of actions
-
-Let $s_t$ be the hidden Markov state of the agent--environment system. It fully
-specifies the external scene and the attentional and sensor configuration.
-Following the observation-density notation of @hu2025 [sec. 3], the interaction
-is
-
+For a finite, nonzero normalizer and finite second moments, the unrestricted
+proposal minimizes the sum of the component variances. The **forward** KL fit
+has the equivalent weighted log-likelihood objective
 $$
-  x_t \sim E(\cdot \mid s_t),\qquad z_t \sim F(\cdot \mid x_t),
+\max_\phi\;
+\mathbb E_{\tau\sim P_e}\!\left[
+  \|G_\theta(\tau)\|_2
+  \sum_{t=1}^{T}\log \pi_{i,\phi}(a_t\mid z_t,h_t)
+\right].
 $$
-$$
-  a_t \sim \pi(\cdot \mid z_t,h_t),\qquad
-  s_{t+1} \sim T(\cdot \mid s_t,a_t).
-$$
+The intrinsic policy scores the actions taken by the target policy; one
+gradient norm weights the entire sequence. The proposal normalizer and the
+environment likelihood terms do not depend on $\phi$, so neither affects the
+maximizer. This trains the intrinsic policy
+parameters $\phi$; the importance-weighted gradient above trains $\theta$.
+An action policy cannot in general realize an arbitrary trajectory law, so
+the fit does not guarantee the unrestricted optimum.
 
-The next input is then $x_{t+1}\sim E(\cdot\mid s_{t+1})$. We retain $x$ for
-sensory input, corresponding to the observation $o$ in robotics. The observation
-density $E(x\mid s)$ has no additional action dependence: actions change what is
-perceived by changing state, including sensor or attentional configuration.
-For example, turning the eyes changes the retinal input even if the scene stays
-still. $E$ describes input generation; $F$ describes its subsequent encoding.
-Neither requires a temporal-history input in this first version, even though
-the policy uses memory.
+An alternative [reverse-KL model](aesthetics-reverse-kl.qmd) fits the
+distribution of individual latents instead. It gives each observed latent an
+intrinsic reward; neither that reward nor its density-ratio estimator is
+required by trajectory BPO.
 
-The resulting stimulus distribution conditioned on state and action is
+## Testing the hypothesis
 
-$$
-  p(x' \mid s,a) = \int T(s' \mid s,a)E(x' \mid s')\,ds'.
-$$
-
-Primes denote the next time step. Integrals become sums for discrete variables.
-A stimulus is sampled from this distribution; the policy selects the action
-that influences it.
-
-The distribution of sensory inputs used for perceptual learning depends on
-the policy that generates the trajectory and on which observations supply samples.
-
-### Perceptual representation
-
-A perceptual encoder turns sensory input into an internal representation, called
-a latent. Rate--distortion theory describes the trade-off between information
-retained and errors introduced by compression [@sims2016]:
-
-$$
-  F(z \mid x) = P(Z = z \mid X = x).
-$$
-
-Biological code complexity is assumed to be capacity-limited and costly.
-Information rate is our proposed surrogate for that cost. Useful information
-must be retained through a task-performance or distortion requirement;
-minimizing complexity alone admits an uninformative channel.
-
-### Latent probability model
-
-The learned model $R_\theta(z)$, also called the latent prior, describes which
-representations are likely. It can capture structure within a representation
-without predicting the next time step from previous latents or actions. Its
-parameters $\theta$ reflect learning experience, but history is not an explicit
-input.
-
-$R_\theta$ must be a normalized probability mass function or density, not an
-arbitrary scalar score. Latent surprise is:
-
-$$
-  \ell_\theta(z) = -\log R_\theta(z).
-$$
-
-This first version implements latent density learning. Interpreting it as a
-component of a biological world model remains a hypothesis.
-
-## Information cost and capacity
-
-### Measuring information
-
-Mutual information measures how much the latent representation tells us about
-sensory input. Expected KL divergence---a measure of difference between
-distributions---provides an upper bound on this information rate.
-
-Under the joint distribution $p(x)F(z \mid x)$, the aggregate latent
-distribution is:
-
-$$
-  q_F(z) = \int p(x)F(z \mid x)\,dx.
-$$
-
-The variational rate identity underlying @alemi2018 gives:
-
-$$
-  \mathcal C(F,\theta)
-  = \mathbb E_X D_{\mathrm{KL}}\big(F(\cdot \mid X)\Vert R_\theta\big)
-$$
-
-$$
-  \mathcal C(F,\theta) = I_F(X;Z) + D_{\mathrm{KL}}\big(q_F\Vert R_\theta\big)
-                       \ge I_F(X;Z).
-$$
-
-**Interpretation:** expected KL equals information rate plus prior mismatch. For
-fixed $F$ and $p(x)$, an unrestricted optimal prior matches $q_F$ and makes the
-bound tight. A restricted learned prior may leave a positive gap.
-
-Learning $R$ reduces prior mismatch, not the information retained by a fixed
-encoder under a fixed input distribution. Improved coding efficiency is the
-proposed biological interpretation; actual savings require a mechanism that
-exploits the learned distribution. The bound alone does not establish such a
-mechanism in organisms.
-
-### Capacity constraint and complexity penalty
-
-**Visual example:** [Rate--distortion and prior
-mismatch](rate-distortion-prior.qmd) shows how learning the prior closes a KL
-gap above a rate--distortion curve while holding the encoder fixed.
-
-The information rate is bounded by capacity $K$:
-
-$$
-  I_F(X;Z) \le K.
-$$
-
-Imposing $\mathcal C(F,\theta) \le K$ is sufficient but may be conservative when
-the prior is mismatched. For a fixed encoder and input distribution, improving
-the prior fit brings the bound closer to the information rate without changing
-the rate itself.
-
-**Technical conditions:** finite KL requires appropriate prior support and a
-well-defined rate; base-2 logs yield bits and natural logs yield nats. For
-continuous representations, deterministic encoders may require noise or
-quantization to obtain a finite information rate.
-
-## Learning and aesthetic reward
-
-### Isolating prior learning with a fixed encoder
-
-Assume $F$ learned useful representations on an earlier task. Freeze its
-parameters (a stop-gradient equivalent) and train only $R_\theta$. This prevents
-encoder collapse during this phase: the prior cannot improve by making $F$
-discard distinctions.
-
-For a fixed input distribution, prior learning reduces mismatch in $\mathcal C$
-while $I_F(X;Z)$ remains fixed. Changing which stimuli are attended can change
-the input distribution, so comparisons of learning progress must distinguish
-model improvement from stimulus-selection effects. How to acquire $F$ is the
-subject of [Learning informative perceptual representations](perceptual-representations.qmd).
-
-### Learning progress as reward
-
-Let $\mathcal L_{\mathrm{eval}}(t)$ denote latent prediction error in the
-continually learned model:
-
-$$
-  \mathrm{LP}(t) = -\frac{d\mathcal L_{\mathrm{eval}}(t)}{dt}.
-$$
-
-A natural error metric for this version is expected negative log likelihood
-under $R_\theta$. With $F$ and the evaluation distribution held fixed, a
-discrete estimate of improvement is:
-
-$$
-  \mathrm{LP}
-  = \mathbb E_{Z \sim q_{\mathrm{eval}}}\big[\log R_{\theta_{\mathrm{after}}}(Z) - \log R_{\theta_{\mathrm{before}}}(Z)\big].
-$$
-
-This is improvement over an update interval; dividing by its duration gives a
-rate. Aesthetic reward is hypothesized to track this improvement, rather than
-simply high likelihood or familiarity. The exact estimator and mapping to reward
-remain open. Held-out examples can help distinguish generalizable learning from
-memorization of just-trained items.
-
-The aesthetic account is intended to extend @schmidhuber2009 and @brielmann2022.
-The precise extensions and literature comparison remain to be established
-against the source papers.
-
-### Candidate reward: selecting efficient learning samples
-
-The extrinsically motivated policy $\pi_e$ optimizes ordinary task return and
-plays the role of the target policy in [behavioral policy optimization
-(BPO)](behavioral-policy-optimization.qmd) [@papini2024]. The intrinsically
-motivated policy $\pi_i$ plays the role of the behavioral policy. What changes
-is the gradient its samples should estimate efficiently: not the policy
-gradient of task return, but the gradient used to fit the perceptual prior
-$R_\theta$ to what the agent experiences under $\pi_e$.
-
-For either policy, let $p_\pi(z)$ be the marginal distribution of a latent
-sampled along its trajectory. For example, run the policy for a fixed number
-of transitions and sample one transition uniformly. Use the same time weighting
-and initial conditions for both policies. Hold $\pi_e$, the encoder, and the
-current prior parameters fixed when comparing intrinsic policies.
-
-The target loss and the gradient contributed by one latent are
-$$
-  L(\theta)=\mathbb E_{p_{\pi_e}}[-\log R_\theta(Z)],\qquad
-  g_\theta(z)=\nabla_\theta[-\log R_\theta(z)].
-$$
-For a latent from an intrinsic trajectory, the importance-weighted estimate is
-$$
-  \widehat g(Z)=w(Z)g_\theta(Z),\qquad
-  w(z)=\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
-$$
-The denominator measures how often $\pi_i$ encounters the latent across its
-trajectory. If $\pi_i$ samples wherever $p_{\pi_e}(z)g_\theta(z)$ is nonzero,
-then $\mathbb E_{p_{\pi_i}}\widehat g=\nabla_\theta L$. Among unrestricted
-proposals, the one minimizing the sum of the component variances of this
-single-sample estimate is [@alain2016, Theorem 1]
-$$
-  q_\theta^*(z)=\frac{p_{\pi_e}(z)\|g_\theta(z)\|_2}{C_\theta},\qquad
-  C_\theta=\mathbb E_{p_{\pi_e}}\|g_\theta(Z)\|_2.
-$$
-Assume $0<C_\theta<\infty$ and finite estimator second moments. Relative to
-their frequency under $\pi_e$, latents that give larger prior gradients should
-be sampled more often.
-
-**Why reverse KL?** BPO fits the behavioral policy using forward KL from the
-optimal proposal to the behavioral distribution. We reverse those arguments so
-that the expectation is under the policy collecting the rewards. On an
-intrinsic trajectory, assign each observed latent the reward
-$$
-  r_I(z)=\log\|g_\theta(z)\|_2
-       +\log\frac{p_{\pi_e}(z)}{p_{\pi_i}(z)}.
-$$
-Its expected trajectory average is
-$$
-  \mathbb E_{p_{\pi_i}}[r_I(Z)]
-  =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
-$$
-Thus maximizing intrinsic reward minimizes reverse KL. When choosing a sampling
-policy, require it to cover every region that contributes to the target gradient.
-Reverse KL alone does not enforce this: a policy can earn finite expected reward
-while never visiting such a region, leaving its prior-gradient estimate biased.
-If an available policy
-can realize $q_\theta^*$, it attains the single-sample variance optimum.
-Otherwise, a smaller reverse KL need not imply smaller variance. The result
-does not account for correlations between successive updates or establish
-that the reward measures actual learning progress.
-
-### Candidate estimator: running latent feature averages {#sec-feature-ema}
-
-The two marginals need not be estimated separately. Least-squares importance
-fitting [@kanamori2009, sec. 2.2] estimates their ratio by minimizing
-$$
-  \mathcal L(w)=\tfrac12\mathbb E_{p_{\pi_i}}[w(Z)^2]
-                   -\mathbb E_{p_{\pi_e}}[w(Z)].
-$$
-When the target marginal is supported by the sampling marginal and their
-ratio has finite second moment, this differs from the mean squared error
-under $p_{\pi_i}$ by a constant and a factor of one half.
-
-For a feature model $w_\eta(z)=\eta^\top f(z)$, maintain an exponential moving
-average $m_e$ of the fixed features $f(z)$ **from extrinsic trajectories only**.
-Then $\eta^\top m_e$ estimates the second expectation; intrinsic trajectory
-samples supply the first. For example, one-hot features retain category
-frequencies, whereas the mean of a continuous latent alone cannot distinguish
-two distributions with the same mean but different tails.
-
-On an intrinsic trajectory, use the pre-update ratio estimate in two ways:
-add $\log w_\eta(z)$ to the log gradient norm for the reward, and multiply
-$g_\theta(z)$ by $w_\eta(z)$ for the prior update. The logarithms require
-positive weights and gradient norms for finite rewards. Restricting the
-feature model to positive ratios or flooring estimates for numerical stability
-can introduce approximation error. Limited features, correlated samples, and
-changes in either policy can also make the estimated weights inaccurate.
-
-## Future extension: temporal conditioning
-
-The policy already uses memory $h_t$. A future extension would also condition
-perception and the latent prior on that memory:
-
-$$
-  F(z_t \mid x_t,h_t),\qquad R_\theta(z_t \mid h_t).
-$$
-
-The information-rate formulation would then use $I_F(X;Z \mid H)$, with a
-corresponding conditional prior-mismatch term. This could capture sequence
-expectations and order effects, including those important in music. It is not
-required for the first version; context choice and its availability to encoding
-and decoding processes would need to be specified.
-
-@lai2025 provide behavioral evidence for conditional policy compression,
-measuring state-to-action information $I(S_t;A_t \mid S_{t-1})$. Applying that
-principle to a perceptual channel is a proposed extension, not direct evidence
-for a perceptual capacity bound. A separate action-policy complexity penalty
-is not currently part of the model.
-
-## Open questions
-
-- **Objective:** how should capacity, complexity cost, and reward be combined
-  and weighted?
-- **Latent model:** which normalized density family captures the regularities
-  people learn?
-- **Aesthetic signal:** how is progress estimated and mapped to reward, and what
-  is the RL time horizon? How can it be separated from familiarity,
-  memorization, changing latent targets, or shifts toward easier stimuli?
-- **Attention--perception interface:** how do movement and attentional controls
-  change state through $T$, and sensory input through $E$? Which transitions
-  supply learning samples?
-- **Policy memory:** what should $U$ retain in $h_t$ to support decisions from
-  $(z_t,h_t)$ under partial observability?
-- **Importance ratio:** for the feature EMA candidate, which fixed features,
-  positivity constraints, and learning timescales yield accurate weights? How
-  much bias arises from correlated experience and marginal drift, and when does
-  weighting outperform unweighted prior learning?
-- **Policy scheduling:** when should the agent pursue the extrinsic task and
-  when should it collect intrinsic learning samples? How quickly must the ratio
-  estimator track changes in either policy?
-- **KL and gradient variance:** sharing a global optimum does not guarantee that
-  gradient-estimator variance increases monotonically with
-  $D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*)$. Under what additional conditions
-  does reducing this KL reduce variance and improve learning? Restrictions on
-  attainable latent distributions can also make the KL-optimal and
-  variance-optimal policies differ.
-- **Temporal extension:** when should the encoder and latent prior also use
-  memory, and which information should that memory contain?
-
-## Evidence and source coverage
-
-The biological coding-cost interpretation, learned-prior mechanism, and
-aesthetic synthesis are model hypotheses. Empirical findings and mathematical
-identities support components without establishing the complete account.
-
-The account brings together theories of perceptual compression, representation
-learning, and intrinsic reward. Further literature analysis is needed to
-establish its precise relationship to existing theories of aesthetics and to
-assess the biological interpretation of its information cost.
-
-**Topics:** computational aesthetics; attention; reinforcement learning;
-intrinsic reward; learning progress; rate--distortion; perceptual
-representation; mutual information; latent density learning.
+With the encoder, target policy, and prior checkpoint held fixed, one can ask
+whether the fitted intrinsic policy reduces the variance of the target gradient
+estimate relative to collecting the same number of task trajectories. A
+separate behavioral test is whether its predicted gaze choices match observed
+preferences. Success on the sampling test alone would not establish the
+aesthetic hypothesis.
 
 ## References
 
