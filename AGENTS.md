@@ -8,6 +8,10 @@ This site is intended to serve as a reference for any potential contributors, hu
 
 If the user cites a new reference in a query, or if you include a new reference in your edit, offer to add it to the references directory. Prefer Marker for document conversion.
 
+## Code conventions
+
+Do not hard-wrap lines in wiki source files (.qmd).
+
 ## After editing copy
 
 After making material changes to the rendered site, start a Quarto preview from
