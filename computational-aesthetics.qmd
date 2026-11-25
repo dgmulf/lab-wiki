@@ -6,7 +6,7 @@ description: "Aesthetic preferences as a policy for sampling perceptual-prior gr
 ::: {#key-ideas .callout-note title="Key ideas"}
 - Aesthetic preferences may arise from optimizing how an agent moves and directs attention to collect samples for learning a perceptual prior.
 - The extrinsic task policy determines which latents the prior should predict. The intrinsic policy determines which trajectories the agent samples to estimate the gradient of that prediction loss.
-- The primary candidate uses vanilla behavioral policy optimization (BPO): it fits the intrinsic policy to a trajectory distribution that favors large gradients of the total latent negative log-likelihood.
+- The primary candidate uses **behavioral network optimization (BNO)**: it fits the intrinsic policy to favor trajectories with large gradients of the perceptual prior’s loss.
 :::
 
 ## What counts as a preference?
@@ -31,7 +31,9 @@ Here the target is the distribution of latents encountered during the task.
 Sampling with $\pi_i$ changes how the prior gradient is estimated, not which
 distribution the prior is meant to fit.
 
-## Primary candidate: BPO over trajectories
+## Primary candidate: behavioral network optimization
+
+[Behavioral policy optimization (BPO)](behavioral-policy-optimization.qmd) [@papini2024] fits a sampling policy to reduce the variance of a policy gradient estimate. We call the generalization **behavioral network optimization (BNO)**: the sampling policy serves any network whose gradient can be estimated from trajectories, not just a policy network. Here that network is the perceptual prior. The intrinsic policy controls where the agent looks; the prior learns from what it sees.
 
 Let $P_e$ and $P_i$ denote the trajectory laws of the two policies, with the
 same horizon, initial conditions, and environment. For a realized trajectory
@@ -53,10 +55,7 @@ to sampling policy action-probability ratios along the trajectory. The estimate
 is unbiased if the sampling policy covers all contributing target trajectories
 and the expectation exists.
 
-[Vanilla BPO](behavioral-policy-optimization.qmd) [@papini2024] fits a policy
-to the variance-optimal importance proposal. Here the vector being estimated
-is the prior gradient rather than a task-return policy gradient. Holding
-$\theta$ and $\pi_e$ fixed for the fit, the proposal and policy objective are
+With $\theta$ and $\pi_e$ held fixed, BNO fits the intrinsic policy to the variance-optimal trajectory distribution for estimating the prior gradient:
 $$
 Q_\theta^*(\tau)=
 \frac{P_e(\tau)\|G_\theta(\tau)\|_2}{\mathbb E_{P_e}\|G_\theta\|_2},
@@ -84,7 +83,7 @@ the fit does not guarantee the unrestricted optimum.
 An alternative [reverse-KL model](aesthetics-reverse-kl.qmd) fits the
 distribution of individual latents instead. It gives each observed latent an
 intrinsic reward; neither that reward nor its density-ratio estimator is
-required by trajectory BPO.
+required by BNO.
 
 ## Testing the hypothesis
 
