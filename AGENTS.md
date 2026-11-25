@@ -12,6 +12,10 @@ Assume the audience has a general background in cognitive science and reinforcem
 
 If the user cites a new reference in a query, or if you include a new reference in your edit, offer to add it to the references directory. Prefer Marker for document conversion.
 
+## Before editing
+
+Before making any edits, check the factual claims and reasoning in the user's request against the relevant wiki material and its cited sources. If you find an apparent factual conflict or logical inconsistency, stop before editing. Explain the conflict to the user, point to the passage or source that raised it, and ask whether to proceed. Wait for explicit approval before making the edit.
+
 ## Code conventions
 
 Do not hard-wrap lines in wiki source files (.qmd).
