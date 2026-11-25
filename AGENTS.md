@@ -2,6 +2,10 @@
 
 This site is intended to serve as a reference for any potential contributors, human or agent, to the ongoing research detailed within.
 
+## Audience
+
+Assume the audience has a general background in cognitive science and reinforcement learning, but has zero visibility into any context surrounding the project outside of the content of the current wiki itself. Specifically, the audience should not be assumed to know about the contents of any user-agent conversations or previous iterations of the wiki.
+
 ## Supporting materials
 
 `references/` may optionally contain markdown copies of the literature referenced by the user or cited in the wiki.
