@@ -14,5 +14,5 @@ A shared notebook for hypotheses, experiments, and academic literature.
 - [Behavioral policy optimization](behavioral-policy-optimization.qmd) ---
   a stub with a reference but no write-up yet.
 - [Reinforcement learning under partial observability](pomdp-rl.qmd) ---
-  how agents represent sensory input for decisions, and how learning a prior
-  over those representations might guide attention.
+  how agents represent sensory input under limited capacity and optimize
+  behavior to learn a perceptual prior.

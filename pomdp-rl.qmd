@@ -6,11 +6,11 @@ toc-depth: 3
 
 ::: {#key-ideas .callout-note title="Key ideas"}
 - In a partially observable Markov decision process (POMDP), an agent cannot
-  observe the full hidden state directly and acts from a perceptual latent and
-  compressed memory, using movement and attentional actions that shape
-  subsequent sensory inputs.
-- Separating sensory encoding, memory updates, and action selection provides a
-  shared POMDP agent architecture across the projects below; in the
+  observe the hidden state directly; in the models on this site, it acts from a
+  perceptual latent and compressed memory, using movement and attentional
+  actions that shape subsequent sensory inputs.
+- Separating observation generation, perceptual encoding, memory updates, and
+  action selection provides a shared POMDP agent architecture; in the
   first-version scope, the observation model and encoder take no explicit
   temporal-history input while the policy conditions on memory.
 - Learning informative, capacity-limited perceptual representations and
@@ -20,78 +20,72 @@ toc-depth: 3
 
 ## From observations to actions
 
-A policy seeks to maximize expected cumulative reward. In a POMDP it receives
-an observation $x_t$ generated from the hidden state $s_t$. Its action $a_t$
-affects the next state and hence what it can observe next. For example, looking
-away from an object removes it from view without necessarily removing it from
-the scene.
+In a POMDP, a policy maximizes expected cumulative reward without direct access
+to the hidden state $s_t$. Instead, the agent receives a sensory input $x_t$
+generated from $s_t$, and its action $a_t$ alters the next state and therefore
+what it can observe next. Looking away from an object, for example, removes it
+from view without removing it from the scene.
 
-In the models considered here, an encoder $F(z_t\mid x_t)$ represents the
-current observation, and a memory $h_t$ summarizes earlier experience. A policy
-chooses an action from $(z_t,h_t)$: it might look back toward the remembered
-object even though the current view gives no indication of its location. This
-internal state need not retain everything needed for an optimal decision.
+In the models on this site, a perceptual encoder $F(z_t \mid x_t)$ compresses
+the current sensory input into a latent $z_t$, while a memory $h_t$ summarizes
+earlier experience. Acting on $(z_t, h_t)$ lets the agent look back toward a
+remembered object even when the current view gives no clue to its location.
 
 ## Model components
 
-The components below define the shared POMDP agent architecture used across the
-projects on this site.
+The projects below share five POMDP agent components.
 
 | Component | Role |
 | --- | --- |
-| Action policy $\pi$ | Selects movement and attention from perceptual latent $z$ and memory $h$; specialized models may split this into extrinsic ($\pi_e$) and intrinsic ($\pi_i$) policies. |
-| Transition model $T$ | Updates the hidden state $s$, including attentional and sensor configuration. |
 | Observation density $E$ | Generates sensory input $X$ from hidden state $S$. |
 | Perceptual channel $F$ | Encodes sensory input $X$ as latent representation $Z$. |
-| Memory update $U$ | Summarizes past latents and actions into memory $h$ for the policy. |
+| Memory update $U$ | Summarizes past latents and actions into memory $h$ for subsequent decisions. |
+| Action policy $\pi$ | Selects movement and attention from $(z, h)$; specialized models may split this into extrinsic ($\pi_e$) and intrinsic ($\pi_i$) policies. |
+| Transition model $T$ | Updates the hidden state $s$, including attentional and sensor configuration. |
 
-**Information flow:** sensory input $x_t$ → perceptual channel $F$ → current
-latent $z_t$ and memory $h_t$ → action $a_t$ under $\pi$ → state transition $T$
-→ next sensory input $x_{t+1}$.
+At each step, $E$ generates $x_t$ from $s_t$, $F$ encodes $x_t$ into $z_t$, and
+the policy $\pi$ selects $a_t$ from $(z_t, h_t)$; the action then drives both
+the next state via $T$ and the next memory state $h_{t+1} = U(h_t, z_t, a_t)$.
+In the first-version scope, neither $E$ nor $F$ takes temporal history as an
+explicit input, even though $\pi$ conditions on $h_t$ and learning accumulates
+past experience in model parameters.
 
-**First-version scope:** the observation density $E$ and perceptual encoder $F$
-take no explicit temporal-history input, even though the policy $\pi$ uses
-memory $h_t$. Learning also accumulates past experience in model parameters.
-Future extensions may condition $F$ (and any learned perceptual prior) on
-memory.
+### Attention and policy
 
-### Attention
-
-Actions have movement and attentional dimensions:
+Actions combine movement and attentional dimensions:
 
 $$
   a_t = (a_t^{\mathrm{move}},a_t^{\mathrm{att}}),
   \qquad \mathcal A = \mathcal A_{\mathrm{move}} \times \mathcal A_{\mathrm{att}}.
 $$
 
-This follows the camera/manipulator action-space construction in @weng2024
-[sec. III], generalized here to movement and attention. An agent can move while
-redirecting gaze or internal attentional focus. Both dimensions can affect
-sensory input. Factoring the action space does not assume independent controls:
-we use a joint policy over the pair.
+Following the camera/manipulator action-space construction of @weng2024
+[sec. III], an agent can move while redirecting gaze or internal attentional
+focus, and both dimensions can alter subsequent sensory input. Factoring the
+action space does not assume independent controls; $\pi$ is a joint policy over
+the pair.
 
-Write $\pi$ for whichever policy generates the trajectory. It acts on the
-current perceptual latent $z_t$ and memory $h_t$:
+Whichever policy $\pi$ generates the trajectory acts on the current perceptual
+latent $z_t$ and memory $h_t$, then updates memory from $(h_t, z_t, a_t)$:
 
 $$
   a_t \sim \pi(\cdot \mid z_t,h_t),
-  \qquad h_{t+1} = U(h_t,z_t,a_t).
+  \qquad h_{t+1} = U(h_t,z_t,a_t),
 $$
 
-Here $h_t$ summarizes experience before the current latent, with an initial
-memory $h_0$. The update stores information from the current latent and action
-for the next decision. The policy has no direct access to the hidden state
-$s_t$. This use of an internal representation of experience is consistent with
-the agent-state approach of @hu2025 [sec. 3]; our particular split into a
-perceptual latent and memory is a modeling choice. A compressed memory is not
-automatically a sufficient statistic or an exact belief state.
+starting from an initial memory $h_0$. Conditioning on an internal summary of
+history follows the agent-state formulation of @hu2025 [sec. 3], with the split
+between current latent $z_t$ and prior-experience summary $h_t$ chosen to
+separate single-step perception from temporal memory. Because $h_t$ is
+compressed, it need not be a sufficient statistic or an exact belief state.
 
 ### Stimuli as consequences of actions
 
 Let $s_t$ be the hidden Markov state of the agent--environment system, drawn
-initially from a state distribution $\mu_0$. It fully specifies the external
-scene and the attentional and sensor configuration. Following the
-observation-density notation of @hu2025 [sec. 3], the interaction is
+initially from $\mu_0$ and specifying both the external scene and the agent's
+sensor and attentional configuration. Using the observation-density notation of
+@hu2025 [sec. 3] (retaining $x$ for sensory input, corresponding to $o$ in
+robotics), one step of interaction is
 
 $$
   x_t \sim E(\cdot \mid s_t),\qquad z_t \sim F(\cdot \mid x_t),
@@ -101,50 +95,26 @@ $$
   s_{t+1} \sim T(\cdot \mid s_t,a_t).
 $$
 
-The next input is then $x_{t+1}\sim E(\cdot\mid s_{t+1})$. We retain $x$ for
-sensory input, corresponding to the observation $o$ in robotics. The observation
-density $E(x\mid s)$ has no additional action dependence: actions change what is
-perceived by changing state, including sensor or attentional configuration.
-For example, turning the eyes changes the retinal input even if the scene stays
-still. $E$ describes input generation; $F$ describes its subsequent encoding.
-Neither requires a temporal-history input in this first version, even though
-the policy uses memory.
-
-The resulting stimulus distribution conditioned on state and action is
+The observation density $E(x \mid s)$ carries no separate action argument:
+actions affect what is perceived by changing $s$, including sensor or
+attentional state (for example, turning the eyes changes retinal input even in a
+static scene). Integrating over the next hidden state gives the
+action-conditioned distribution of the next stimulus:
 
 $$
-  p(x' \mid s,a) = \int T(s' \mid s,a)E(x' \mid s')\,ds'.
+  p(x' \mid s,a) = \int T(s' \mid s,a)E(x' \mid s')\,ds',
 $$
 
-Primes denote the next time step. Integrals become sums for discrete variables.
-A stimulus is sampled from this distribution; the policy selects the action
-that influences it. Consequently, the distribution of sensory inputs available
-for perceptual learning depends on the policy that generates the trajectory and
-on which observations supply samples.
-
-### Perceptual channel
-
-The perceptual channel maps sensory input $x$ to an internal latent
-representation $z$:
-
-$$
-  F(z \mid x) = P(Z = z \mid X = x).
-$$
-
-Because actions depend on $z_t$ and $h_t$ rather than directly on $x_t$ or $s_t$,
-the encoder controls which sensory distinctions are available to the policy and
-memory update. How $F$ can be learned and how a perceptual prior controls its
-coding complexity under limited capacity are developed in [Perceptual
-representations and efficient encoding](perceptual-representations.qmd).
-
-### Open architectural questions
-
-- **Attention--perception interface:** how do movement and attentional controls
-  change state through $T$, and sensory input through $E$?
-- **Policy memory:** what should $U$ retain in $h_t$ to support decisions from
-  $(z_t,h_t)$ under partial observability?
+with sums replacing integrals for discrete variables. Because the policy selects
+actions that shape subsequent stimuli, the sensory distribution available for
+perceptual learning depends on which policy generates the trajectory.
 
 ## Research questions
+
+Because actions depend on $z_t$ and $h_t$ rather than directly on $x_t$ or
+$s_t$, the encoder $F$ determines which sensory distinctions reach the policy.
+The two projects below separate learning what to encode from learning how to
+sample experience for a perceptual prior:
 
 - [Perceptual representations and efficient encoding](perceptual-representations.qmd):
   which distinctions should the encoder $F$ preserve, and how does learning a

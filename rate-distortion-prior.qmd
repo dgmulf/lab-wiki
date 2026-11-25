@@ -115,7 +115,7 @@ $$
 +\underbrace{D_{\mathrm{KL}}(q_F\Vert R_\theta)}_{\text{prior mismatch}}.
 $$
 
-Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic preference.
+Learning the prior removes the second term, not necessarily the first. This binary coding example illustrates an information-theoretic identity rather than an empirical result about biological perception.
 :::
 
 ## References

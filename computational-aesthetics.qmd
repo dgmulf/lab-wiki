@@ -22,50 +22,43 @@ toc-depth: 3
 
 ## Overview
 
-Within the [POMDP research project](pomdp-rl.qmd), this model starts from a
-fixed, useful perceptual encoder $F$ and asks how an organism efficiently learns
-the normalized perceptual prior $R_\theta(z)$ motivated by code-complexity
-control in [Perceptual representations and efficient
+Within the [POMDP agent architecture](pomdp-rl.qmd#model-components), this model
+starts from a fixed, useful perceptual encoder $F$ and asks how an agent
+efficiently learns the normalized perceptual prior $R_\theta(z)$ motivated by
+code-complexity control in [Perceptual representations and efficient
 encoding](perceptual-representations.qmd#efficient-encoding-and-the-perceptual-prior).
 Its central thesis is that aesthetic preferences arise from optimizing a
 behavioral (intrinsic) policy to sample trajectories that efficiently estimate
-the gradient of that perceptual prior. Rather than trying to define the
-subjective experience of beauty, the model targets the behavioral preferences
-induced by optimizing this sampling policy.
+the gradient of that perceptual prior. Rather than defining the subjective
+experience of beauty, the model targets the behavioral preferences produced by
+this optimization.
 
-This page builds directly on the shared [POMDP model
-components](pomdp-rl.qmd#model-components)---hidden state $s_t$, observation
-density $E$, fixed encoder $F$, memory update $U$, and transition model $T$---by
-splitting control into two policies acting on $(z_t, h_t)$:
+Using the shared POMDP components---hidden state $s_t$, observation density $E$,
+fixed encoder $F$, memory update $U$, and transition model $T$---the model
+splits control into two policies acting on $(z_t, h_t)$:
 
-- **Extrinsic policy $\pi_e$:** optimizes ordinary task return and determines
-  the distribution of perceptual latents that $R_\theta$ should predict.
-- **Intrinsic policy $\pi_i$:** acts as the behavioral sampling policy optimized
-  to estimate the gradient of $R_\theta$, hypothesized to produce aesthetic
-  preferences.
+- **Extrinsic policy $\pi_e$:** optimizes task return and defines the
+  distribution of perceptual latents that $R_\theta$ should predict.
+- **Intrinsic policy $\pi_i$:** serves as the behavioral sampling policy
+  optimized to estimate the gradient of $R_\theta$, hypothesized to give rise to
+  aesthetic preferences.
 
-**First-version scope:** following the POMDP baseline, $F$ and $R_\theta$ have
-no explicit temporal-history input, while $\pi_e$ and $\pi_i$ use current
-perceptual latents $z_t$ and memory $h_t$. Learning also accumulates past
-experience in model parameters. Future models may condition $F$ and $R_\theta$
-on memory.
-
-**Model status:** conceptual hypothesis. The mathematical variance-reduction
-identities are distinct from the proposed aesthetic mechanism and from the
-biological coding-efficiency interpretation discussed in [Perceptual
-representations and efficient encoding](perceptual-representations.qmd).
+Following the first-version POMDP scope, $F$ and $R_\theta$ take no explicit
+temporal-history input while $\pi_e$ and $\pi_i$ condition on $(z_t, h_t)$. This
+account is a conceptual hypothesis sitting alongside compression-progress and
+predictive-processing theories of aesthetics [@schmidhuber2009; @brielmann2022]:
+the mathematical variance-reduction results below justify the sampling
+objective without establishing that it accounts for human aesthetics.
 
 ## Primary candidate model: vanilla BPO for the prior gradient
 
-The extrinsically motivated policy $\pi_e$ plays the role of the target policy
-in [behavioral policy optimization (BPO)](behavioral-policy-optimization.qmd)
-[@papini2024], and the intrinsically motivated policy $\pi_i$ plays the role of
-the behavioral policy. What changes from standard BPO is the vector expectation
-being estimated: instead of the policy gradient of task return, $\pi_i$ samples
-trajectories to estimate the gradient used to fit the predictive perceptual
-prior $R_\theta$ to latents encountered under $\pi_e$. Under the page's thesis,
-aesthetic preferences reflect the behavioral policy $\pi_i$ obtained from this
-optimization.
+In [behavioral policy optimization (BPO)](behavioral-policy-optimization.qmd)
+[@papini2024], a behavioral policy is optimized to reduce the variance of
+off-policy gradient estimates for a target policy. Here, $\pi_e$ plays the role
+of the target policy and $\pi_i$ plays the role of the behavioral policy, while
+the vector expectation being estimated shifts from the policy gradient of task
+return to the gradient of the perceptual-prior loss on experience generated
+under $\pi_e$.
 
 Consider a trajectory of $N$ decision steps from the [POMDP interaction
 loop](pomdp-rl.qmd#stimuli-as-consequences-of-actions),
@@ -77,19 +70,19 @@ $$
 generated under either policy $\pi \in \{\pi_e,\pi_i\}$ with the same initial
 state distribution $\mu_0$, initial memory $h_0$, observation density $E$, fixed
 encoder $F$, memory update $U$, and transition model $T$. Write $p_\pi(\tau)$
-for the induced trajectory distribution. Hold $\pi_e$, $F$, and the current
+for the induced trajectory distribution, and hold $\pi_e$, $F$, and the current
 prior parameters $\theta$ fixed when optimizing $\pi_i$.
 
 Using the per-step latent surprise $\ell_\theta(z) = -\log R_\theta(z)$, define
-the trajectory-wide total negative log-likelihood of the predictive prior by
+the trajectory-wide total negative log-likelihood of the predictive prior as
 
 $$
   \ell_\theta(\tau) = \sum_{t=0}^{N} \ell_\theta(z_t)
                     = \sum_{t=0}^{N} \bigl[-\log R_\theta(z_t)\bigr].
 $$
 
-The target prior loss under the extrinsic policy and the single-trajectory
-gradient estimate are
+The target prior loss under $\pi_e$ and the single-trajectory gradient estimate
+are
 
 $$
   L(\theta) = \mathbb E_{\tau \sim p_{\pi_e}}\bigl[\ell_\theta(\tau)\bigr],
@@ -98,7 +91,7 @@ $$
                  = \sum_{t=0}^{N} \nabla_\theta \bigl[-\log R_\theta(z_t)\bigr].
 $$
 
-Assuming differentiation under the expectation is valid,
+Assuming differentiation can be exchanged with the expectation,
 $\mathbb E_{\tau \sim p_{\pi_e}}[g_\theta(\tau)] = \nabla_\theta L(\theta)$.
 
 For a trajectory sampled from the intrinsic policy $\tau \sim p_{\pi_i}$, the
@@ -112,8 +105,8 @@ $$
 $$
 
 Because $\mu_0$, $E$, $F$, $U$, and $T$ are shared by both policies, they cancel
-from the trajectory density ratio, leaving only the product of known action
-probabilities. Whenever $p_{\pi_i}(\tau) > 0$ on every trajectory with
+from the density ratio, leaving only the product of known action probabilities.
+Whenever $p_{\pi_i}(\tau) > 0$ on every trajectory with
 $p_{\pi_e}(\tau)g_\theta(\tau) \ne 0$ (for instance, when
 $\pi_e(\cdot \mid z,h) \ll \pi_i(\cdot \mid z,h)$ along reachable $(z,h)$),
 the estimator is unbiased:
@@ -121,8 +114,8 @@ $\mathbb E_{\tau \sim p_{\pi_i}}[\widehat g(\tau)] = \nabla_\theta L(\theta)$.
 
 Theorem 1 of @papini2024 applies to estimating the expectation of any
 vector-valued function [@papini2024, fn. 3; see also @alain2016, Theorem 1].
-Among unrestricted trajectory distributions, the one minimizing the trace of the
-covariance matrix
+Among unrestricted trajectory distributions $q$, the one minimizing the trace of
+the covariance matrix
 $\mathbb E_{\tau \sim q}\bigl[\|\widehat g(\tau) - \nabla_\theta L(\theta)\|_2^2\bigr]$
 is
 
@@ -134,16 +127,15 @@ $$
 
 assuming $0 < C_\theta < \infty$ and finite second moments. Relative to their
 probability under $\pi_e$, trajectories whose total prior negative
-log-likelihood yields a larger gradient norm are sampled more frequently.
+log-likelihood produces a larger gradient norm are sampled more often.
 
-Because the environment dynamics are fixed and $\pi_i$ is restricted to a
-parameterized policy class $\Pi$, $p_\theta^*$ is generally not directly
-realizable. Vanilla BPO projects $p_\theta^*$ onto the realizable trajectory
-distributions by minimizing the forward KL divergence
-$D_{\mathrm{KL}}(p_\theta^* \Vert p_{\pi_i})$ [@papini2024, sec. 3.2]. Expanding
-$\log p_{\pi_i}(\tau)$ drops every factor independent of $\pi_i$
-($\mu_0$, $E$, $F$, $T$), reducing the projection to weighted cross-entropy
-minimization [@papini2024, Proposition 3.1]:
+Because environment dynamics are fixed and $\pi_i$ belongs to a parameterized
+policy class $\Pi$, $p_\theta^*$ is generally not realizable. Vanilla BPO
+projects $p_\theta^*$ onto realizable trajectory distributions by minimizing the
+forward KL divergence $D_{\mathrm{KL}}(p_\theta^* \Vert p_{\pi_i})$
+[@papini2024, sec. 3.2]. Expanding $\log p_{\pi_i}(\tau)$ drops all factors
+independent of $\pi_i$ ($\mu_0$, $E$, $F$, $T$), leaving a weighted
+cross-entropy objective [@papini2024, Proposition 3.1]:
 
 $$
   \pi_i^* \in \arg\min_{\pi_i \in \Pi}
@@ -152,20 +144,22 @@ $$
   \right].
 $$
 
-Because this expectation is under the extrinsic policy $\pi_e$, it can be
-estimated from extrinsic trajectories—or off-policy from previously collected
-trajectories using multiple importance sampling [@papini2024, sec. 3.2]—without
-estimating unknown latent marginals or constructing a separate step-wise
-intrinsic reward for reinforcement learning.
+Because this expectation is taken under $\pi_e$, it can be estimated from
+extrinsic trajectories---or off-policy from earlier trajectories via multiple
+importance sampling [@papini2024, sec. 3.2]---without estimating unknown latent
+marginals or constructing a step-wise intrinsic reward for reinforcement
+learning.
 
 Exact variance reduction relative to on-policy sampling depends on
 $\chi^2(p_\theta^* \Vert p_{\pi_i})$ rather than forward KL directly
-[@papini2024, Lemma 4.1]. Without defensive sampling, the pure trajectory weight
-$w(\tau)$ multiplies across all $N$ steps and can grow large with horizon when
-$\pi_i$ diverges from $\pi_e$. Following vanilla BPO [@papini2024, Algorithm 1,
-Theorem 2], collecting prior-update trajectories from a defensive mixture
+[@papini2024, Lemma 4.1], and without defensive sampling the pure trajectory
+weight $w(\tau)$ can grow rapidly with horizon $N$ when $\pi_i$ diverges from
+$\pi_e$. Following vanilla BPO [@papini2024, Algorithm 1, Theorem 2],
+collecting prior-update trajectories from a defensive mixture
 $\Phi = \beta p_{\pi_e} + (1 - \beta)p_{\pi_i}$ with $\beta \in (0,1]$
-guarantees support coverage and relates excess gradient variance to
+guarantees support coverage and bounds the importance weight; when
+$\|g_\theta(\tau)\|_2$ is also essentially bounded under $p_{\pi_e}$, Theorem 2
+of @papini2024 further bounds excess gradient variance in terms of
 $D_{\mathrm{KL}}(p_\theta^* \Vert p_{\pi_i})$. For $\tau \sim \Phi$, the
 applied importance weight is
 
@@ -177,73 +171,38 @@ $$
                \le \frac{1}{\beta}
 $$
 
-whenever $p_{\pi_e}(\tau) > 0$ (and $w_\Phi(\tau) = 0$ when $p_{\pi_e}(\tau) = 0$).
-Although $w_\Phi(\tau)$ stays bounded by $1/\beta$ at every horizon, the
-$N$-step action-probability product inside it can still concentrate weights near
-$0$ or $1/\beta$ over long horizons if $\pi_i$ departs sharply from $\pi_e$,
-reducing effective sample size and the variance reduction available from the
-intrinsic component. Furthermore, minimizing single-update gradient variance
-does not account for correlations across successive prior updates.
+whenever $p_{\pi_e}(\tau) > 0$ (and $w_\Phi(\tau) = 0$ when
+$p_{\pi_e}(\tau) = 0$). Even though $w_\Phi(\tau)$ remains bounded by $1/\beta$
+at every horizon, the $N$-step action-probability product inside it can still
+concentrate weights near $0$ or $1/\beta$ over long horizons if $\pi_i$ departs
+sharply from $\pi_e$, shrinking effective sample size and the variance
+reduction gained from $\pi_i$. Moreover, minimizing single-update gradient
+variance does not account for correlations across successive prior updates.
 
 ## Alternative candidate: reverse-KL intrinsic reward
 
-An alternative formulation replaces trajectory-level forward KL with an RL
-intrinsic reward defined over single-step latent marginals $p_\pi(z)$, whose
-expected value under $\pi_i$ minimizes reverse KL divergence
-$D_{\mathrm{KL}}(p_{\pi_i} \Vert q_\theta^*)$ to the single-sample optimal
-latent proposal. Because the ratio of extrinsic to intrinsic latent marginals is
-unknown, that approach requires a separate density-ratio estimator and inherits
-the support-coverage caveats of reverse KL. See [Reverse-KL intrinsic reward for
-prior sampling](reverse-kl-prior-sampling.qmd) for the full derivation and
-feature-based ratio estimator.
-
-## Future extension: temporal conditioning
-
-If a future version conditions the encoder and perceptual prior on memory as
-$F(z_t \mid x_t,h_t)$ and $R_\theta(z_t \mid h_t)$ (see [Perceptual
-representations and efficient
-encoding](perceptual-representations.qmd#future-extension-temporal-conditioning)),
-replacing $R_\theta(z_t)$ with $R_\theta(z_t \mid h_t)$ inside
-$\ell_\theta(\tau)$ leaves the trajectory importance weights $w(\tau)$ and
-$w_\Phi(\tau)$ unchanged because $h_t$ is already determined along the
-trajectory. Conditioning the prior on memory could capture sequence expectations
-and order effects, including those important in music.
+An alternative formulation operates on single-step latent marginals $p_\pi(z)$
+instead of full trajectories, training $\pi_i$ with a reinforcement-learning
+intrinsic reward whose expected value under $\pi_i$ minimizes reverse KL
+divergence $D_{\mathrm{KL}}(p_{\pi_i} \Vert q_\theta^*)$ to the single-sample
+variance-optimal latent proposal. Because the ratio of extrinsic to intrinsic
+latent marginals is unknown, this route requires a separate density-ratio
+estimator and inherits the support-coverage caveats of reverse KL. See
+[Reverse-KL intrinsic reward for prior sampling](reverse-kl-prior-sampling.qmd)
+for the derivation and feature-based ratio estimator.
 
 ## Open questions
 
-- **BPO and horizon scaling:** how do horizon $N$, policy-class expressiveness
-  $\Pi$, defensive weight $\beta$, and sample allocation between $\pi_e$ and
-  $\pi_i$ affect prior-gradient variance and learning speed? When does
-  trajectory-level importance weighting outperform unweighted or on-policy prior
-  learning?
+- **Horizon scaling and sample allocation:** how do horizon $N$, policy-class
+  expressiveness $\Pi$, defensive weight $\beta$, and sample allocation between
+  $\pi_e$ and $\pi_i$ affect prior-gradient variance and learning speed, and
+  when does importance-weighted sampling outperform on-policy prior learning?
 - **Policy scheduling:** when should the agent act under $\pi_e$ versus $\pi_i$,
-  and how should $\pi_i$ track simultaneous updates to both $\pi_e$ and
-  $\theta$?
-- **Behavioral link to aesthetics:** which empirical signatures of aesthetic
-  preference emerge from optimizing $\pi_i$ for prior-gradient sampling, and how
-  does this account compare with compression-progress and predictive-processing
-  theories [@schmidhuber2009; @brielmann2022]?
-- **Temporal extension:** how does conditioning $R_\theta$ on memory $h_t$ alter
-  the trajectories favored by $\pi_i$ in sequential domains?
-
-## Evidence and source coverage
-
-The hypothesis that aesthetic preferences arise from behavioral policy
-optimization for a perceptual prior is a conceptual hypothesis. Mathematical
-variance-reduction identities from BPO support the trajectory-sampling mechanism
-without establishing that it accounts for human or biological aesthetics, and
-the coding-cost motivation for learning $R_\theta$ is evaluated separately in
-[Perceptual representations and efficient
-encoding](perceptual-representations.qmd).
-
-This behavioral-sampling account sits alongside compression-progress and
-predictive-processing theories of aesthetics [@schmidhuber2009; @brielmann2022],
-while avoiding a definition of subjective beauty. Further literature analysis
-and empirical testing are needed to establish its precise relationship to those
-theories.
-
-**Topics:** computational aesthetics; behavioral policy optimization; importance
-sampling; attention; reinforcement learning; perceptual prior.
+  and how should $\pi_i$ track simultaneous updates to $\pi_e$ and $\theta$?
+- **Empirical signatures:** which behavioral signatures of aesthetic preference
+  emerge from optimizing $\pi_i$ for prior-gradient sampling, and how do they
+  compare with compression-progress and predictive-processing accounts
+  [@schmidhuber2009; @brielmann2022]?
 
 ## References
 
