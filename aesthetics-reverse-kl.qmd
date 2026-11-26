@@ -22,7 +22,7 @@ The target loss and the gradient contributed by one latent are
 $$
   L(\theta)=\mathbb E_{p_{\pi_e}}[-\log R_\theta(Z)],\qquad
   g_\theta(z)=\nabla_\theta[-\log R_\theta(z)].
-$$
+$$ {#eq-latent-loss-gradient}
 For a latent from an intrinsic trajectory the estimate is
 $\widehat g(z)=w(z)g_\theta(z)$, with
 $w(z)=p_{\pi_e}(z)/p_{\pi_i}(z)$. It is unbiased if the sampler covers every
@@ -31,7 +31,7 @@ the sum of the component variances is [@alain2016, Theorem 1]
 $$
   q_\theta^*(z)=p_{\pi_e}(z)\|g_\theta(z)\|_2/C_\theta,\qquad
   C_\theta=\mathbb E_{p_{\pi_e}}\|g_\theta(Z)\|_2.
-$$
+$$ {#eq-optimal-latent-proposal}
 Assume $0<C_\theta<\infty$ and finite estimator second moments.
 
 BPO uses forward KL from the optimal proposal to the behavioral distribution.
@@ -39,12 +39,12 @@ Reversing the arguments puts the expectation under the policy collecting the
 reward. Assign each observed latent
 $$
   r_I(z)=\log\|g_\theta(z)\|_2+\log w(z).
-$$
+$$ {#eq-intrinsic-reward}
 Substituting $q_\theta^*$ gives
 $$
   \mathbb E_{p_{\pi_i}}[r_I(Z)]
   =\log C_\theta-D_{\mathrm{KL}}(p_{\pi_i}\Vert q_\theta^*).
-$$
+$$ {#eq-reverse-kl-objective}
 Thus maximizing expected reward fits the intrinsic latent marginal by reverse
 KL. Coverage still requires a separate constraint: a policy can earn finite
 reward while never visiting a contributing region. If the policy can realize
@@ -60,7 +60,7 @@ ratio directly by minimizing
 $$
   \mathcal L(w)=\tfrac12\mathbb E_{p_{\pi_i}}[w(Z)^2]
                    -\mathbb E_{p_{\pi_e}}[w(Z)].
-$$
+$$ {#eq-least-squares-importance-fitting}
 When the target marginal is supported by the sampling marginal and the ratio
 has finite second moment, this is half the mean squared ratio error under
 $p_{\pi_i}$ up to an additive constant.

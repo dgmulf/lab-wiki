@@ -17,7 +17,7 @@ Let $X$ be a fair binary stimulus and $Z$ a binary latent. Use the latent itself
 
 $$
 \mathcal R(D)=1-h_2(D),\qquad h_2(D)=-D\log_2D-(1-D)\log_2(1-D).
-$$
+$$ {#eq-binary-rate-distortion}
 
 Here $0\log_2 0=0$. We use $\mathcal R(D)$ for the rate–distortion function to distinguish it from the learned prior $R_\theta$.
 
@@ -27,7 +27,7 @@ $$
 \mathcal C(F_D,r)=\mathcal R(D)
 +D_{\mathrm{KL}}\!\left(\operatorname{Bern}(1/2)\Vert\operatorname{Bern}(r)\right)
 =1-h_2(D)-\tfrac12\log_2\!\bigl(4r(1-r)\bigr).
-$$
+$$ {#eq-binary-variational-rate}
 
 ```{python}
 #| label: fig-rate-distortion-prior
@@ -112,7 +112,7 @@ $$
 \mathcal C(F,\theta)-\mathcal R(D_F)
 =\underbrace{I_F(X;Z)-\mathcal R(D_F)}_{\text{encoder's excess rate}}
 +\underbrace{D_{\mathrm{KL}}(q_F\Vert R_\theta)}_{\text{prior mismatch}}.
-$$
+$$ {#eq-rate-distortion-gap}
 
 Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic reward.
 :::

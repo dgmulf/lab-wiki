@@ -35,7 +35,7 @@ reconstruction distortion and coding cost by
 $$
 \mathcal D = \mathbb E[-\log p_\psi(X\mid Z)],\qquad
 \mathcal C = \mathbb E\!\left[\log\frac{F(Z\mid X)}{R_\theta(Z)}\right],
-$$
+$$ {#eq-distortion-coding-cost}
 
 where $R_\theta$ is a normalized latent prior. Jointly minimizing
 $\mathcal D+\beta\mathcal C$ over encoder, decoder, and prior trades
@@ -63,7 +63,7 @@ and are encoded by $F$. The coding cost above decomposes as [@alemi2018]
 $$
 \mathcal C
 = I(X;Z) + D_{\mathrm{KL}}\!\left(q_F\Vert R_\theta\right).
-$$
+$$ {#eq-coding-cost-decomposition}
 For a fixed encoder and input distribution, $I(X;Z)$ is the minimum over
 all priors: the mismatch term is nonnegative and vanishes when $R_\theta=q_F$.
 Fitting the prior therefore tightens the estimate from above without changing

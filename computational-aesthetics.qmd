@@ -41,7 +41,7 @@ $\tau$ with latent sequence $z_{1:T}$, define
 $$
 L_\theta(\tau)=-\sum_{t=1}^T\log R_\theta(z_t),\qquad
 G_\theta(\tau)=\nabla_\theta L_\theta(\tau).
-$$
+$$ {#eq-trajectory-loss-gradient}
 The prior scores each latent without conditioning on history; the samples
 need not be independent. Differentiate with respect to the **prior parameters**,
 holding the trajectory fixed. Add the gradient vectors before taking their
@@ -61,7 +61,7 @@ Q_\theta^*(\tau)=
 \frac{P_e(\tau)\|G_\theta(\tau)\|_2}{\mathbb E_{P_e}\|G_\theta\|_2},
 \qquad
 \min_\phi D_{\rm KL}\!\left(Q_\theta^*\Vert P_{\pi_{i,\phi}}\right).
-$$
+$$ {#eq-trajectory-proposal-fit}
 For a finite, nonzero normalizer and finite second moments, the unrestricted
 proposal minimizes the sum of the component variances. The **forward** KL fit
 has the equivalent weighted log-likelihood objective
@@ -71,7 +71,7 @@ $$
   \|G_\theta(\tau)\|_2
   \sum_{t=1}^{T}\log \pi_{i,\phi}(a_t\mid z_t,h_t)
 \right].
-$$
+$$ {#eq-weighted-trajectory-log-likelihood}
 The intrinsic policy scores the actions taken by the target policy; one
 gradient norm weights the entire sequence. The proposal normalizer and the
 environment likelihood terms do not depend on $\phi$, so neither affects the
