@@ -11,11 +11,11 @@ description: >-
   work policy determines which latents the prior should predict. The play
   policy learns where to look from work trajectories, giving more weight to
   trajectories with larger prior-loss gradient norms.
-- In the glyph experiment, work draws control exposure and play draw
-  probability measures liking. The experiment tests whether BNO can produce an
-  inverted-U preference curve that peaks at the same exposure count as the
-  human ideograph curve, and whether it learns the prior in fewer fitted card
-  draws than a work-only control.
+- In the glyph experiment, work draws control exposure, and liking is the
+  card’s play policy logit rescaled from 0 to 1 across the deck. The experiment
+  tests whether BNO can match the human ideograph liking curve across exposure
+  counts and whether it learns the prior in fewer fitted card draws than a
+  work-only control.
 :::
 
 ## What counts as a preference?
@@ -91,9 +91,9 @@ In a meta-analysis of human studies, @montoya2017 found that liking for visual
 stimuli rose with repetition and then fell. The glyph experiment tests two
 hypotheses:
 
-1. **Preference.** We can fit BNO hyperparameters so that the agent’s
-   card-preference curve forms an inverted U and peaks at the same exposure
-   count as the [human ideograph curve](#ideograph-exposure-curve).
+1. **Preference.** We can fit BNO hyperparameters so that the agent’s mean
+   liking at each observed work exposure count matches the rating on the
+   [human ideograph curve](#ideograph-exposure-curve) at that count.
 2. **Prior convergence.** BNO will need fewer fitted card draws than the
    work-only control to reach the same mean prior-loss threshold under the
    work distribution.
@@ -107,7 +107,7 @@ expected exposure; its measured exposure is the number of times it was
 actually drawn during work. Some cards have zero work probability but remain
 available during play, providing the zero-exposure baseline. Because the
 work distribution also determines which cards train the play policy, the
-peak comparison describes preference under this sampling schedule, not the
+liking curve describes preference under this sampling schedule, not the
 effect of repetition at a fixed work probability.
 
 **Learning the labels and the prior.** The work task is to label each glyph
@@ -119,28 +119,25 @@ likelihood in @eq-trajectory-loss-gradient. BNO fits the play distribution
 from work trajectories weighted by their prior-loss gradient norms, then
 updates the prior from the importance-weighted mixture of work and play.
 
-**Measuring liking.** After training, group cards by the number of times each
-was drawn during work. At each exposure count, average the cards’ draw
-probabilities under the learned play policy. Cards never drawn during work do
-not enter the weighted likelihood used to fit play, so a freely fitted play
-distribution favors assigning them zero probability. A rise above this
-baseline alone is not evidence of an inverted U.
+**Measuring liking.** After training, let $\ell_i$ be the play policy’s logit
+for card $i$, before softmax converts logits to draw probabilities. Define
+the card’s liking score by rescaling its logit across all cards in the deck:
+$$
+L_i=\frac{\ell_i-\min_j\ell_j}{\max_j\ell_j-\min_j\ell_j}.
+$$ {#eq-glyph-liking}
+The least-liked cards score 0 and the most-liked score 1. If all logits are
+equal, the policy expresses no preference and the score is undefined.
 
-**Fitting hyperparameters.** For each candidate set of hyperparameters, fit a
-quadratic to the agent’s results: use observed work exposure count as the
-predictor and mean play draw probability at that count as the response.
-Only a downward-opening quadratic with a peak strictly inside the observed
-exposure range qualifies. Among those fits, choose the hyperparameters whose
-peak is closest to [73.6 exposures](#ideograph-exposure-curve). Report the
-fitted peak and its absolute distance from 73.6 in exposures. Zero distance
-is an exact match; a nonzero distance means the fitted peak missed the target.
-If no fit qualifies, there is no fitted peak to compare.
-
-To check whether the fitted peak describes the observations, plot the mean
-play draw probability at each exposure count and overlay the model quadratic
-on the same probability scale. Describe the observed preferences as an inverted
-U only if the means support both a rise and a fall. Only the fitted peak
-location is compared with the human curve.
+**Fitting hyperparameters.** For each candidate, group cards by the number
+of times they were drawn during work. At each represented count $x$, compare
+the group’s mean liking score with the human rating $q(x)$ from
+@eq-ideograph-rating, on its published scale. The endpoints 0 and 1 apply
+to individual card scores; do not rescale the group means or the human curve.
+Choose the hyperparameters that minimize the mean squared difference across
+represented counts, weighting each count equally regardless of how many cards
+it contains. A candidate with all logits equal has no defined error.
+Report the error and plot the observed group means against the human curve
+to show where the agent’s liking rises or falls with exposure.
 
 **Measuring convergence.** Starting from the same classifier and prior
 checkpoint, hold the classifier and work distribution fixed. A **fitted card
