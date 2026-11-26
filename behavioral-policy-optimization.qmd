@@ -1,9 +1,0 @@
----
-title: "Behavioral policy optimization"
-nocite: '@papini2024'
----
-
-## References
-
-::: {#refs}
-:::

@@ -5,8 +5,8 @@ description: "Aesthetic preferences as a policy for sampling perceptual-prior gr
 
 ::: {#key-ideas .callout-note title="Key ideas"}
 - Aesthetic preferences may arise from optimizing how an agent moves and directs attention to collect samples for learning a perceptual prior.
-- The extrinsic task policy determines which latents the prior should predict. The intrinsic policy determines which trajectories the agent samples to estimate the gradient of that prediction loss.
-- The primary candidate uses **behavioral network optimization (BNO)**: it fits the intrinsic policy to favor trajectories with large gradients of the perceptual prior’s loss.
+- The work policy determines which latents the prior should predict. The play policy learns where to look from work trajectories, giving more weight to those with larger prior-loss gradients.
+- The primary candidate updates the perceptual prior from a mixture of work and play trajectories. The encoder and work policy parameters are frozen only during this network optimization phase.
 :::
 
 ## What counts as a preference?
@@ -18,25 +18,17 @@ that collects experience for perceptual learning. The model is about choices:
 it does not require a stimulus to carry a beauty score or the agent to register
 how much it learned after each glance.
 
-In the [partially observable environment](pomdp-rl.qmd), a fixed
-[perceptual encoder](perceptual-representations.qmd) maps input $x_t$ to a
-latent $z_t$. Both policies select movement and attention using $z_t$ and a
-memory $h_t$ of earlier experience. Their roles differ: the extrinsic policy
-$\pi_e$ pursues task return, while the intrinsic policy $\pi_i$ collects
-experience for estimating what the prior should learn under $\pi_e$.
+In the [partially observable environment](pomdp-rl.qmd), a learned [perceptual encoder](perceptual-representations.qmd) maps input $x_t$ to a latent $z_t$. Both policies select movement and attention using $z_t$ and a memory $h_t$ of earlier experience. The **work policy** pursues task return. The **play policy** learns where to look to estimate the prior’s loss gradient under the work policy.
 
 The [efficient encoding account](perceptual-representations.qmd#efficient-encoding)
 motivates fitting a normalized prior $R_\theta(z)$ to the encoder's outputs.
-Here the target is the distribution of latents encountered during the task.
-Sampling with $\pi_i$ changes how the prior gradient is estimated, not which
-distribution the prior is meant to fit.
+The prior is meant to fit the distribution of latents encountered under the work policy. Sampling with the play policy changes how the prior gradient is estimated, not which distribution the prior should fit.
 
 ## Primary candidate: behavioral network optimization
 
-[Behavioral policy optimization (BPO)](behavioral-policy-optimization.qmd) [@papini2024] fits a sampling policy to reduce the variance of a policy gradient estimate. We call the generalization **behavioral network optimization (BNO)**: the sampling policy serves any network whose gradient can be estimated from trajectories, not just a policy network. Here that network is the perceptual prior. The intrinsic policy controls where the agent looks; the prior learns from what it sees.
+In this application of [behavioral network optimization (BNO)](behavioral-network-optimization.qmd), the target network is the perceptual prior.
 
-Let $P_e$ and $P_i$ denote the trajectory laws of the two policies, with the
-same horizon, initial conditions, and environment. For a realized trajectory
+For a realized trajectory
 $\tau$ with latent sequence $z_{1:T}$, define
 $$
 L_\theta(\tau)=-\sum_{t=1}^T\log R_\theta(z_t),\qquad
@@ -48,37 +40,7 @@ holding the trajectory fixed. Add the gradient vectors before taking their
 norm: two glances can each produce a large gradient yet largely cancel in the
 trajectory total.
 
-The target is $\mathbb E_{P_e}G_\theta$. A trajectory sampled under $\pi_i$
-contributes $(P_e(\tau)/P_i(\tau))G_\theta(\tau)$ to its estimate. For shared
-environment dynamics and memory updates the ratio is the product of the target
-to sampling policy action-probability ratios along the trajectory. The estimate
-is unbiased if the sampling policy covers all contributing target trajectories
-and the expectation exists.
-
-With $\theta$ and $\pi_e$ held fixed, BNO fits the intrinsic policy to the variance-optimal trajectory distribution for estimating the prior gradient:
-$$
-Q_\theta^*(\tau)=
-\frac{P_e(\tau)\|G_\theta(\tau)\|_2}{\mathbb E_{P_e}\|G_\theta\|_2},
-\qquad
-\min_\phi D_{\rm KL}\!\left(Q_\theta^*\Vert P_{\pi_{i,\phi}}\right).
-$$ {#eq-trajectory-proposal-fit}
-For a finite, nonzero normalizer and finite second moments, the unrestricted
-proposal minimizes the sum of the component variances. The **forward** KL fit
-has the equivalent weighted log-likelihood objective
-$$
-\max_\phi\;
-\mathbb E_{\tau\sim P_e}\!\left[
-  \|G_\theta(\tau)\|_2
-  \sum_{t=1}^{T}\log \pi_{i,\phi}(a_t\mid z_t,h_t)
-\right].
-$$ {#eq-weighted-trajectory-log-likelihood}
-The intrinsic policy scores the actions taken by the target policy; one
-gradient norm weights the entire sequence. The proposal normalizer and the
-environment likelihood terms do not depend on $\phi$, so neither affects the
-maximizer. This trains the intrinsic policy
-parameters $\phi$; the importance-weighted gradient above trains $\theta$.
-An action policy cannot in general realize an arbitrary trajectory law, so
-the fit does not guarantee the unrestricted optimum.
+When fitting the play policy by [weighted trajectory log-likelihood](behavioral-network-optimization.qmd#eq-weighted-trajectory-log-likelihood), each work trajectory's gradient norm $\|G_\theta(\tau)\|_2$ weights the log-likelihood of its entire action sequence. The [network update](behavioral-network-optimization.qmd#eq-defensive-network-gradient) combines work and play trajectories to estimate the prior gradient under the work policy. Only during this phase are the encoder and work policy parameters frozen: the prior learns to predict the latents encountered under the current task behavior, not a permanently fixed representation.
 
 An alternative [reverse-KL model](aesthetics-reverse-kl.qmd) fits the
 distribution of individual latents instead. It gives each observed latent an
@@ -87,12 +49,7 @@ required by BNO.
 
 ## Testing the hypothesis
 
-With the encoder, target policy, and prior checkpoint held fixed, one can ask
-whether the fitted intrinsic policy reduces the variance of the target gradient
-estimate relative to collecting the same number of task trajectories. A
-separate behavioral test is whether its predicted gaze choices match observed
-preferences. Success on the sampling test alone would not establish the
-aesthetic hypothesis.
+With the encoder, work policy, and prior checkpoint held fixed, does sampling with the fitted play policy alongside the work policy reduce the variance of the prior gradient estimate relative to the same number of work trajectories alone? A separate behavioral test is whether the play policy’s predicted gaze choices match observed preferences. Success on the sampling test alone would not establish the aesthetic hypothesis.
 
 ## References
 

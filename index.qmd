@@ -5,14 +5,12 @@ title: Research Wiki
 A shared notebook for hypotheses, experiments, and academic literature.
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- This wiki indexes two research topics: behavioral policy optimization
-  (currently a stub) and reinforcement learning under partial observability.
+- This wiki indexes two research topics: behavioral network optimization and reinforcement learning under partial observability.
 :::
 
 ## Research topics
 
-- [Behavioral policy optimization](behavioral-policy-optimization.qmd) ---
-  a stub with a reference but no write-up yet.
+- [Behavioral network optimization](behavioral-network-optimization.qmd) --- how to fit a play policy and combine work and play trajectories to estimate a network's gradient.
 - [Reinforcement learning under partial observability](pomdp-rl.qmd) ---
   how agents represent sensory input for decisions, and how learning a prior
   over those representations might guide attention.

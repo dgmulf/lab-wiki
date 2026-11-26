@@ -5,6 +5,7 @@ description: "Which distinctions a perceptual encoder retains and how a learned 
 
 ::: {#key-ideas .callout-note title="Key ideas"}
 - An encoder must preserve distinctions useful for decisions, not merely produce latents that are easy to predict.
+- In the primary aesthetics model, the encoder can learn; its parameters and the work policy parameters are frozen only during the update of the perceptual prior.
 - Temporal prediction and sensory reconstruction are candidate training signals. Neither avoiding collapse nor achieving a good variational objective guarantees task relevance.
 - We propose that an organism uses $\mathcal C$ to estimate the minimum realizable cost of communicating what its latents convey about sensory input. A mismatched prior overestimates that minimum; a matched prior gives the mutual information $I(X;Z)$ exactly.
 :::
@@ -86,11 +87,7 @@ shows the coding bound falling while reconstruction error stays fixed.
 
 ## Connection to aesthetic preferences
 
-Either approach could supply an encoder for the [computational model of
-aesthetics](computational-aesthetics.qmd). That model freezes an already-useful
-encoder to isolate learning of the latent prior. Joint training instead changes
-the latent target itself. Which training stimuli, likelihood, architecture, and
-compression weight preserve useful distinctions remains an empirical question.
+Either approach could supply an encoder for the [computational model of aesthetics](computational-aesthetics.qmd). In its primary model, the encoder and the task (work) policy are frozen only during the network optimization phase, when the perceptual prior is updated. The prior thus has a stable target for that update, but the latent distribution it must predict can change as the encoder or work policy learns between updates. Which training stimuli, likelihood, architecture, and compression weight preserve useful distinctions remains an empirical question.
 
 ## References
 

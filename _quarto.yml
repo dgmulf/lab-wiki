@@ -14,8 +14,8 @@ website:
         text: Home
       - href: pomdp-rl.qmd
         text: RL under partial observability
-      - href: behavioral-policy-optimization.qmd
-        text: Behavioral policy optimization
+      - href: behavioral-network-optimization.qmd
+        text: Behavioral network optimization
 bibliography: references.bib
 link-citations: true
 format:
