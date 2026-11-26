@@ -2,10 +2,6 @@
 
 This site is intended to serve as a reference for any potential contributors, human or agent, to the ongoing research detailed within.
 
-## Audience and writing style
-
-Wiki articles should read like public-facing academic literature. Assume the audience has a general background in cognitive science and reinforcement learning, but has zero visibility into any context surrounding the project outside of the content of the current wiki itself. Define nonstandard terms and symbols before use.
-
 ## Supporting materials
 
 `references` is a symlink to a directory which may optionally contain markdown copies of the literature referenced by the user or cited in the wiki.
@@ -15,6 +11,10 @@ If the user cites a new reference in a query, or if you include a new reference 
 ## Before editing
 
 Before making any edits, check the factual claims and reasoning in the user's request against the relevant wiki material and its cited sources. If you find an apparent factual conflict or logical inconsistency, stop before editing. Explain the conflict to the user, point to the passage or source that raised it, and ask whether to proceed. Wait for explicit approval before making the edit.
+
+## User instructions
+
+Treat user corrections as instructions about what the article should say, not as points the article should make. Put explanations of what changed in the edit summary, not the article.
 
 ## Code conventions
 
