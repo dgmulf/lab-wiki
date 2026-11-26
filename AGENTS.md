@@ -18,8 +18,6 @@ Treat user corrections as instructions about what the article should say, not as
 
 ## Code conventions
 
-Do not hard-wrap lines in wiki source files (.qmd).
-
 Number every displayed equation in `.qmd` files by appending a unique, descriptive Quarto label to its closing `$$`, for example `$$ {#eq-coding-cost}`. Leave inline math unnumbered. When referring to an equation in the same document, use its cross-reference (e.g., `@eq-coding-cost`) rather than hard-coding the number.
 
 ## After editing copy
