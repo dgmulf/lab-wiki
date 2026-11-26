@@ -18,7 +18,8 @@ cannot be satisfied.
 ## Check destinations and push
 
 1. Confirm `origin` pushes to the intended GitHub repository and `local`
-   pushes to the intended source repository. Fetch `origin/main` and record its tip.
+   pushes to the intended source repository. Fetch `origin/main` and record its
+   tip.
 2. Push the exact verified commit first to `origin` and then to `local`, using
    `git push origin <candidate-sha>:refs/heads/main` and
    `git push local <candidate-sha>:refs/heads/main`. Use no force or bypass

@@ -1,12 +1,16 @@
 ---
 title: "A reverse-KL model of aesthetic preferences"
-description: "An intrinsic reward for sampling individual perceptual-prior gradients."
+description: >-
+  An intrinsic reward for sampling individual perceptual-prior gradients.
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- The intrinsic policy seeks individual latents that efficiently estimate the prior gradient under the extrinsic policy.
-- A log gradient norm plus a log latent-frequency ratio gives a reward whose expectation minimizes reverse KL to the optimal single-latent proposal.
-- Running feature averages from extrinsic experience can help estimate the ratio without fitting two latent densities.
+- The intrinsic policy seeks individual latents that efficiently estimate the
+  prior gradient under the extrinsic policy.
+- A log gradient norm plus a log latent-frequency ratio gives a reward whose
+  expectation minimizes reverse KL to the optimal single-latent proposal.
+- Running feature averages from extrinsic experience can help estimate the ratio
+  without fitting two latent densities.
 :::
 
 Unlike the [trajectory BPO candidate](computational-aesthetics.qmd), this

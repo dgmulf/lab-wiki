@@ -1,6 +1,8 @@
 ---
 title: "Rate–distortion and prior mismatch"
-description: "An exact binary example of the extra coding cost of an inaccurate latent prior."
+description: >-
+  An exact binary example of the extra coding cost of an inaccurate latent
+  prior.
 jupyter: python3
 execute:
   enabled: true
@@ -8,20 +10,29 @@ execute:
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- Learning a latent prior can lower the variational coding cost toward the rate–distortion curve without changing what an encoder retains. This binary example isolates the [cost of prior mismatch](perceptual-representations.qmd#efficient-encoding).
+- Learning a latent prior can lower the variational coding cost toward the
+  rate–distortion curve without changing what an encoder retains. This binary
+  example isolates the
+  [cost of prior mismatch](perceptual-representations.qmd#efficient-encoding).
 :::
 
 ## A binary example
 
-Let $X$ be a fair binary stimulus and $Z$ a binary latent. Use the latent itself as the reconstruction, with Hamming distortion $d(x,z)=\mathbf 1[x\ne z]$. An encoder $F_D$ flips the input with probability $D$, so its expected distortion is $D$. For $0\le D\le 1/2$, these channels attain the rate–distortion curve:
+Let $X$ be a fair binary stimulus and $Z$ a binary latent. Use the latent itself
+as the reconstruction, with Hamming distortion $d(x,z)=\mathbf 1[x\ne z]$. An
+encoder $F_D$ flips the input with probability $D$, so its expected distortion
+is $D$. For $0\le D\le 1/2$, these channels attain the rate–distortion curve:
 
 $$
 \mathcal R(D)=1-h_2(D),\qquad h_2(D)=-D\log_2D-(1-D)\log_2(1-D).
 $$ {#eq-binary-rate-distortion}
 
-Here $0\log_2 0=0$. We use $\mathcal R(D)$ for the rate–distortion function to distinguish it from the learned prior $R_\theta$.
+Here $0\log_2 0=0$. We use $\mathcal R(D)$ for the rate–distortion function to
+distinguish it from the learned prior $R_\theta$.
 
-The true latent marginal is $q_{F_D}(Z=1)=1/2$ for every encoder in this family. Write the prior as $R_r(Z=1)=r$. The variational rate identity [@alemi2018] gives:
+The true latent marginal is $q_{F_D}(Z=1)=1/2$ for every encoder in this family.
+Write the prior as $R_r(Z=1)=r$. The variational rate identity [@alemi2018]
+gives:
 
 $$
 \mathcal C(F_D,r)=\mathcal R(D)
@@ -33,7 +44,11 @@ $$ {#eq-binary-variational-rate}
 #| label: fig-rate-distortion-prior
 #| fig-width: 8
 #| fig-height: 4.8
-#| fig-cap: "Prior mismatch raises the variational coding cost above the exact rate–distortion curve. At a fixed encoder (vertical dotted line), improving the prior moves downward while distortion and mutual information stay fixed. All information quantities are in bits per stimulus."
+#| fig-cap: >-
+#|   Prior mismatch raises the variational coding cost above the exact
+#|   rate–distortion curve. At a fixed encoder (vertical dotted line), improving
+#|   the prior moves downward while distortion and mutual information stay
+#|   fixed. All information quantities are in bits per stimulus.
 #| fig-alt: "Three descending curves over distortion from zero to one half. The matched prior r=0.5 lies on the rate-distortion curve. Priors r=0.25 and r=0.1 raise the curve by 0.208 and 0.737 bits. A downward arrow at distortion 0.18 shows prior learning closing the mismatch gap."
 import numpy as np
 import matplotlib.pyplot as plt
@@ -97,16 +112,25 @@ plt.show()
 
 ## How to read it
 
-- **Along a curve:** change the encoder’s flip probability, trading retained information for distortion.
-- **Downward at a fixed distortion:** improve only the prior. The latent marginal remains fair; $r$ approaches $1/2$, and the mismatch penalty disappears. The encoder and its mutual information do not change.
-- **At $D=1/2$:** the latent carries no input information, yet a mismatched prior still gives positive expected KL. Positive variational rate alone does not prove informative representations.
+- **Along a curve:** change the encoder’s flip probability, trading retained
+  information for distortion.
+- **Downward at a fixed distortion:** improve only the prior. The latent
+  marginal remains fair; $r$ approaches $1/2$, and the mismatch penalty
+  disappears. The encoder and its mutual information do not change.
+- **At $D=1/2$:** the latent carries no input information, yet a mismatched
+  prior still gives positive expected KL. Positive variational rate alone does
+  not prove informative representations.
 
-The constant vertical offsets are a property of this symmetric example, where the marginal is the same at every distortion. They need not be constant for other encoder families.
+The constant vertical offsets are a property of this symmetric example, where
+the marginal is the same at every distortion. They need not be constant for
+other encoder families.
 
 ::: {.callout-note}
 ## When is the gap entirely prior mismatch?
 
-Only when the encoder attains the rate–distortion frontier, as it does here. For a general feasible encoder and a specified reconstruction rule with achieved distortion $D_F$,
+Only when the encoder attains the rate–distortion frontier, as it does here. For
+a general feasible encoder and a specified reconstruction rule with achieved
+distortion $D_F$,
 
 $$
 \mathcal C(F,\theta)-\mathcal R(D_F)
@@ -114,7 +138,9 @@ $$
 +\underbrace{D_{\mathrm{KL}}(q_F\Vert R_\theta)}_{\text{prior mismatch}}.
 $$ {#eq-rate-distortion-gap}
 
-Learning the prior removes the second term, not necessarily the first. This illustrative binary coding problem is not an empirical result about perception or aesthetic reward.
+Learning the prior removes the second term, not necessarily the first. This
+illustrative binary coding problem is not an empirical result about perception
+or aesthetic reward.
 :::
 
 ## References

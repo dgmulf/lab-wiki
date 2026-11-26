@@ -1,11 +1,16 @@
 ---
 title: "Reinforcement learning under partial observability"
-description: "Perceptual representations, memory, and attention in partially observable Markov decision processes."
+description: >-
+  Perceptual representations, memory, and attention in partially observable
+  Markov decision processes.
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- We use a partially observable Markov decision process (POMDP) as a biological model: an organism acts on sensory evidence and memory, not on direct knowledge of the world's state.
-- Learning what an encoder retains and learning how often its outputs occur are different problems. The projects below study each in turn.
+- We use a partially observable Markov decision process (POMDP) as a biological
+  model: an organism acts on sensory evidence and memory, not on direct
+  knowledge of the world's state.
+- Learning what an encoder retains and learning how often its outputs occur are
+  different problems. The projects below study each in turn.
 :::
 
 ## From observations to actions
@@ -32,10 +37,11 @@ internal state need not retain everything needed for an optimal decision.
 
 ## Research questions
 
-- [Representation learning and efficient perceptual encoding](perceptual-representations.qmd):
-  which distinctions should the encoder preserve, and at what cost? Predictive
-  learning and reconstruction offer different training signals; a learned
-  perceptual prior can reduce coding overhead for the distinctions retained.
+- [Representation learning and efficient perceptual
+  encoding](perceptual-representations.qmd): which distinctions should the
+  encoder preserve, and at what cost? Predictive learning and reconstruction
+  offer different training signals; a learned perceptual prior can reduce coding
+  overhead for the distinctions retained.
 - [Computational model of aesthetics](computational-aesthetics.qmd): given a
   useful encoder, which experiences should an agent seek to learn how often
   its outputs occur during a task? The model asks whether optimizing that

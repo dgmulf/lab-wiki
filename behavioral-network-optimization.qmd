@@ -4,34 +4,67 @@ aliases: [behavioral-policy-optimization.html]
 ---
 
 ::: {#key-ideas .callout-note title="Key ideas"}
-- The work policy defines the experience a network should learn from. The play policy seeks trajectories that contribute large gradients to that network's update.
-- Work trajectories train the play policy; an importance-weighted mixture of work and play trajectories trains the target network.
+- The work policy defines the experience a network should learn from. The play
+  policy seeks trajectories that contribute large gradients to that network's
+  update.
+- Work trajectories train the play policy; an importance-weighted mixture of
+  work and play trajectories trains the target network.
 :::
 
-**Behavioral network optimization (BNO)** generalizes the behavioral policy optimization algorithm of @papini2024. In their algorithm the target network is the task policy itself. In BNO it can instead be a sensory network, a [perceptual prior](computational-aesthetics.qmd), or another network whose gradient can be estimated from trajectories. The **work policy** pursues the extrinsic task; the **play policy** is the intrinsic policy trained to reduce the variance of the target network's gradient estimate.
+**Behavioral network optimization (BNO)** generalizes the behavioral policy
+optimization algorithm of @papini2024. In their algorithm the target network is
+the task policy itself. In BNO it can instead be a sensory network, a
+[perceptual prior](computational-aesthetics.qmd), or another network whose
+gradient can be estimated from trajectories. The **work policy** pursues the
+extrinsic task; the **play policy** is the intrinsic policy trained to reduce
+the variance of the target network's gradient estimate.
 
 ## Fit play from work trajectories
 
-Let $P_w$ be the distribution of trajectories under the current work policy and $G_\theta(\tau)$ the gradient contribution of trajectory $\tau$ for a target network with parameters $\theta$. The gradient to estimate is $\mathbb E_{P_w}[G_\theta]$. For finite second moments and a finite, positive mean gradient norm, the unrestricted sampling distribution that minimizes the sum of component variances is
+Let $P_w$ be the distribution of trajectories under the current work policy and
+$G_\theta(\tau)$ the gradient contribution of trajectory $\tau$ for a target
+network with parameters $\theta$. The gradient to estimate is
+$\mathbb E_{P_w}[G_\theta]$. For finite second moments and a finite, positive
+mean gradient norm, the unrestricted sampling distribution that minimizes the
+sum of component variances is
 $$
 Q_\theta^*(\tau)=\frac{P_w(\tau)\|G_\theta(\tau)\|_2}{\mathbb E_{P_w}\|G_\theta\|_2}.
 $$ {#eq-trajectory-proposal-fit}
 
-Fit the play policy $\pi_{p,\phi}$, with parameters $\phi$, on work trajectories by minimizing the forward KL divergence from $Q_\theta^*$ to the play trajectory law $P_{p,\phi}$. With shared initial conditions and environment dynamics, only action probabilities depend on $\phi$. The equivalent weighted log-likelihood objective is
+Fit the play policy $\pi_{p,\phi}$, with parameters $\phi$, on work trajectories
+by minimizing the forward KL divergence from $Q_\theta^*$ to the play trajectory
+law $P_{p,\phi}$. With shared initial conditions and environment dynamics, only
+action probabilities depend on $\phi$. The equivalent weighted log-likelihood
+objective is
 $$
 \max_\phi\;\mathbb E_{\tau\sim P_w}\!\left[\|G_\theta(\tau)\|_2\sum_{t=1}^T\log\pi_{p,\phi}(a_t\mid z_t,h_t)\right],
 $$ {#eq-weighted-trajectory-log-likelihood}
-where $a_t$ is the work action, $z_t$ the perceptual latent, and $h_t$ the agent's memory at step $t$ of a trajectory of length $T$. In the sample estimate of @eq-weighted-trajectory-log-likelihood, one gradient norm weights the whole action sequence. The fit need not realize $Q_\theta^*$ exactly: choosing actions does not give the agent control over every outcome.
+where $a_t$ is the work action, $z_t$ the perceptual latent, and $h_t$ the
+agent's memory at step $t$ of a trajectory of length $T$. In the sample estimate
+of @eq-weighted-trajectory-log-likelihood, one gradient norm weights the whole
+action sequence. The fit need not realize $Q_\theta^*$ exactly: choosing actions
+does not give the agent control over every outcome.
 
 ## Update the target from work and play trajectories
 
-Collection alternates between work and play. The target network update uses trajectories from both policies. With work fraction $0<\beta<1$, the trajectory mixture is $M=\beta P_w+(1-\beta)P_{p,\phi}$. Each trajectory contributes the importance-weighted gradient
+Collection alternates between work and play. The target network update uses
+trajectories from both policies. With work fraction $0<\beta<1$, the trajectory
+mixture is $M=\beta P_w+(1-\beta)P_{p,\phi}$. Each trajectory contributes the
+importance-weighted gradient
 $$
 \frac{P_w(\tau)}{M(\tau)}G_\theta(\tau).
 $$ {#eq-defensive-network-gradient}
-The denominator is the mixture for the whole trajectory, not the probability under whichever policy generated it. The work component makes the mixture **defensive**: it covers every work trajectory and bounds the importance weight by $1/\beta$. For a given mixture $M$, the expectation of @eq-defensive-network-gradient under $M$ is the work gradient, even when play visits different states.
+The denominator is the mixture for the whole trajectory, not the probability
+under whichever policy generated it. The work component makes the mixture
+**defensive**: it covers every work trajectory and bounds the importance weight
+by $1/\beta$. For a given mixture $M$, the expectation of
+@eq-defensive-network-gradient under $M$ is the work gradient, even when play
+visits different states.
 
-This identity does not prescribe a collection schedule. If an implementation reuses work trajectories that helped fit the play policy, their weights depend on those same trajectories; the fixed-mixture identity alone does not guarantee an unbiased update.
+This identity does not prescribe a collection schedule. If an implementation
+reuses work trajectories that helped fit the play policy, their weights depend
+on those same trajectories; the fixed-mixture identity alone does not guarantee
+an unbiased update.
 
 ## References
 
