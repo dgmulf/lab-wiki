@@ -1,11 +1,11 @@
 ---
-name: proofread
+name: copyedit
 description: >-
   Review wiki pages against their stated key ideas without editing them. Use for
-  a standalone proofread or the review stage of /edit.
+  a standalone copyedit or the review stage of /author.
 ---
 
-# Proofread wiki pages
+# Copyedit wiki pages
 
 Read each page named in the arguments in full. Review without editing. For each
 page:
