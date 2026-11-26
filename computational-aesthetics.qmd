@@ -11,10 +11,11 @@ description: >-
   work policy determines which latents the prior should predict. The play
   policy learns where to look from work trajectories, giving more weight to
   trajectories with larger prior-loss gradient norms.
-- In the glyph experiment, a card’s draw probability during work controls
-  exposure, and its draw probability during play measures liking. The
-  experiment asks whether BNO can reproduce the human peak in liking at
-  intermediate exposure when fitted to the ideograph curve.
+- In the glyph experiment, work draws control exposure and play draw
+  probability measures liking. The experiment tests whether BNO can produce an
+  inverted-U preference curve that peaks at the same exposure count as the
+  human ideograph curve, and whether it learns the prior in fewer fitted card
+  draws than a work-only control.
 :::
 
 ## What counts as a preference?
@@ -75,7 +76,7 @@ distribution of individual latents instead. It gives each observed latent an
 intrinsic reward; neither that reward nor its density-ratio estimator is
 required by BNO.
 
-## Testing the hypothesis
+## Testing the model
 
 With the encoder, work policy, and prior checkpoint held fixed, does sampling
 with the fitted play policy alongside the work policy reduce the variance of the
@@ -86,19 +87,28 @@ establish the aesthetic hypothesis.
 
 ### Mere exposure: Glyphs on cards
 
-Can BNO reproduce the mere exposure effect? In a meta-analysis of human
-studies, @montoya2017 found that liking for visual stimuli followed a pattern
-consistent with an inverted U: liking rose with repetition and then fell.
-The experiment asks whether BNO can reproduce that shape when calibrated to
-the human curve, not whether it predicts the curve without fitting.
+In a meta-analysis of human studies, @montoya2017 found that liking for visual
+stimuli rose with repetition and then fell. The glyph experiment tests two
+hypotheses:
+
+1. **Preference.** We can fit BNO hyperparameters so that the agent’s
+   card-preference curve forms an inverted U and peaks at the same exposure
+   count as the [human ideograph curve](#ideograph-exposure-curve).
+2. **Prior convergence.** BNO will need fewer fitted card draws than the
+   work-only control to reach the same mean prior-loss threshold under the
+   work distribution.
 
 **Manipulating exposure.** Each card depicts a procedurally generated glyph
 with a known label. At each step the agent draws one card with replacement.
 Work and play each use a distribution over the deck that does not depend on
 previous draws. The experimenter fixes the work distribution, assigning cards
-different draw probabilities. Some cards have zero probability during work but
-remain available during play. They provide the zero-exposure baseline. Among
-the remaining cards, some glyphs will appear more often than others.
+different draw probabilities. A card’s assigned probability controls its
+expected exposure; its measured exposure is the number of times it was
+actually drawn during work. Some cards have zero work probability but remain
+available during play, providing the zero-exposure baseline. Because the
+work distribution also determines which cards train the play policy, the
+peak comparison describes preference under this sampling schedule, not the
+effect of repetition at a fixed work probability.
 
 **Learning the labels and the prior.** The work task is to label each glyph
 from its raw image. Each work draw supplies one example in a minibatch for a
@@ -114,25 +124,32 @@ was drawn during work. At each exposure count, average the cards’ draw
 probabilities under the learned play policy. Cards never drawn during work do
 not enter the weighted likelihood used to fit play, so a freely fitted play
 distribution favors assigning them zero probability. A rise above this
-baseline alone is not evidence of an inverted U. Among cards drawn during
-work, moderately exposed glyphs must have a higher mean play draw probability
-than both rarely and frequently exposed glyphs.
+baseline alone is not evidence of an inverted U.
 
-**Fitting hyperparameters.** Fit the model hyperparameters so that this
-preference curve matches the [ideograph curve](#ideograph-exposure-curve) in
-Table 3 of @montoya2017. Normalize each curve separately: subtract its value
-at zero exposures, then divide by the rise from that baseline to its own peak.
-This compares the shapes without equating a human rating with a draw
-probability. Keep the exposure counts unscaled so that a peak at the wrong
-count is a mismatch. A model curve that never rises above baseline cannot
-match the target.
+**Fitting hyperparameters.** For each candidate set of hyperparameters, fit a
+quadratic to the agent’s results: use observed work exposure count as the
+predictor and mean play draw probability at that count as the response.
+Only a downward-opening quadratic with a peak strictly inside the observed
+exposure range qualifies. Among those fits, choose the hyperparameters whose
+peak is closest to [73.6 exposures](#ideograph-exposure-curve). Report the
+fitted peak and its absolute distance from 73.6 in exposures. Zero distance
+is an exact match; a nonzero distance means the fitted peak missed the target.
+If no fit qualifies, there is no fitted peak to compare.
+
+To check whether the fitted peak describes the observations, plot the mean
+play draw probability at each exposure count and overlay the model quadratic
+on the same probability scale. Describe the observed preferences as an inverted
+U only if the means support both a rise and a fall. Only the fitted peak
+location is compared with the human curve.
 
 **Measuring convergence.** Starting from the same classifier and prior
-checkpoint, hold the classifier and work distribution fixed. Compare BNO with
-a control that trains the prior on work draws alone. Give both the same total
-card-draw budget, counting both work and play draws for BNO. The prediction is
-that BNO needs fewer draws to reach the same threshold for mean prior loss
-under the work distribution.
+checkpoint, hold the classifier and work distribution fixed. A **fitted card
+draw** is a draw in a trajectory used to estimate the prior gradient. For
+BNO, count the draws in both work and play trajectories used in the
+importance-weighted estimate. For the control, count the draws in work
+trajectories used in its prior gradient estimate. Draws used only to fit the
+play policy do not count. Give both methods the same fitted-draw budget and
+record how many fitted draws each needs to reach the prior-loss threshold.
 
 ## References
 
@@ -149,8 +166,4 @@ $$ {#eq-ideograph-rating}
 
 The table reports a peak at 73.07 exposures. For fitting, we use the printed
 coefficients in @eq-ideograph-rating, which give a peak at
-$p = 0.00368/(2 \times 0.000025) = 73.6$ exposures. The normalized target is
-$$
-\frac{q(x)-q(0)}{q(p)-q(0)}
-= 1 - \left(\frac{x-73.6}{73.6}\right)^2.
-$$ {#eq-ideograph-target}
+$p = 0.00368/(2 \times 0.000025) = 73.6$ exposures.
