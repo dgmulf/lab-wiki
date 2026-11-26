@@ -36,18 +36,25 @@ equation in the same document, use its cross-reference (e.g.,
 
 ## After editing copy
 
-After making material changes to the rendered site, start a Quarto preview from
-the repository root in a Delta background terminal:
+After making material changes to the rendered site, check whether a Quarto
+preview is already running or starting in the current worktree. Check the
+background terminals first. A preview started in another terminal may also
+have a PID in `.quarto/preview/lock`; verify that the PID belongs to a live
+Quarto preview for this worktree, since the lock can be stale.
+
+Reuse the existing preview and verify that it serves the updated pages. Do not
+start a second preview in the same worktree: Quarto shuts down the first one
+even if the second uses a different port. If no preview is running or starting,
+start one from the repository root in a background terminal:
 
 ```sh
 uv run --locked quarto preview --render html --no-browser
 ```
 
-Do not pass `--port`; let Quarto choose an available port so previews can run in
-parallel. The preview exits after 15 minutes with no active clients.
+Do not pass `--port`; let Quarto choose an available port so previews in
+different worktrees can run in parallel.
 
-Wait for Quarto to print the preview URL and verify that the affected pages
-load. In your final reply, leave the preview running and include clickable links
-to the relevant rendered pages, using the actual preview URL and section anchors
-where helpful. Link directly to the changed pages rather than only the home
-page.
+Use the running server’s URL and verify that the affected pages load. In your
+final reply, leave the preview running and include clickable links to the
+relevant rendered pages, using section anchors where helpful. Link directly
+to the changed pages rather than only the home page.
