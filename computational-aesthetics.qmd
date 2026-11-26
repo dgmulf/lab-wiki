@@ -13,7 +13,8 @@ description: >-
   trajectories with larger prior-loss gradient norms.
 - In the glyph experiment, a card’s draw probability during work controls
   exposure, and its draw probability during play measures liking. The
-  prediction is that liking peaks at intermediate exposure.
+  experiment asks whether BNO can reproduce the human peak in liking at
+  intermediate exposure when fitted to the ideograph curve.
 :::
 
 ## What counts as a preference?
@@ -88,14 +89,16 @@ establish the aesthetic hypothesis.
 Can BNO reproduce the mere exposure effect? In a meta-analysis of human
 studies, @montoya2017 found that liking for visual stimuli followed a pattern
 consistent with an inverted U: liking rose with repetition and then fell.
-The proposed experiment tests for that shape in an agent’s choices.
+The experiment asks whether BNO can reproduce that shape when calibrated to
+the human curve, not whether it predicts the curve without fitting.
 
 **Manipulating exposure.** Each card depicts a procedurally generated glyph
 with a known label. At each step the agent draws one card with replacement.
 Work and play each use a distribution over the deck that does not depend on
 previous draws. The experimenter fixes the work distribution, assigning cards
-different draw probabilities. Over the same number of work draws, some glyphs
-will therefore appear more often than others.
+different draw probabilities. Some cards have zero probability during work but
+remain available during play. They provide the zero-exposure baseline. Among
+the remaining cards, some glyphs will appear more often than others.
 
 **Learning the labels and the prior.** The work task is to label each glyph
 from its raw image. Each work draw supplies one example in a minibatch for a
@@ -106,12 +109,23 @@ likelihood in @eq-trajectory-loss-gradient. BNO fits the play distribution
 from work trajectories weighted by their prior-loss gradient norms, then
 updates the prior from the importance-weighted mixture of work and play.
 
-**Measuring liking.** After training, compare each card’s probability under
-the learned play policy with its assigned work draw probability. An inverted U
-would mean that the agent chooses moderately exposed glyphs more often in play
-than either rarely or frequently exposed glyphs. Model hyperparameters will
-be fitted to human liking-by-exposure data; the dataset has not yet been
-selected.
+**Measuring liking.** After training, group cards by the number of times each
+was drawn during work. At each exposure count, average the cards’ draw
+probabilities under the learned play policy. Cards never drawn during work do
+not enter the weighted likelihood used to fit play, so a freely fitted play
+distribution favors assigning them zero probability. A rise above this
+baseline alone is not evidence of an inverted U. Among cards drawn during
+work, moderately exposed glyphs must have a higher mean play draw probability
+than both rarely and frequently exposed glyphs.
+
+**Fitting hyperparameters.** Fit the model hyperparameters so that this
+preference curve matches the [ideograph curve](#ideograph-exposure-curve) in
+Table 3 of @montoya2017. Normalize each curve separately: subtract its value
+at zero exposures, then divide by the rise from that baseline to its own peak.
+This compares the shapes without equating a human rating with a draw
+probability. Keep the exposure counts unscaled so that a peak at the wrong
+count is a mismatch. A model curve that never rises above baseline cannot
+match the target.
 
 **Measuring convergence.** Starting from the same classifier and prior
 checkpoint, hold the classifier and work distribution fixed. Compare BNO with
@@ -124,3 +138,19 @@ under the work distribution.
 
 ::: {#refs}
 :::
+
+## Appendix: Ideograph exposure curve {#ideograph-exposure-curve}
+
+For $x$ exposures, the ideograph row in Table 3 of @montoya2017 gives the
+following quadratic for the fitted human rating:
+$$
+q(x) = 0.60776 + 0.00368x - 0.000025x^2.
+$$ {#eq-ideograph-rating}
+
+The table reports a peak at 73.07 exposures. For fitting, we use the printed
+coefficients in @eq-ideograph-rating, which give a peak at
+$p = 0.00368/(2 \times 0.000025) = 73.6$ exposures. The normalized target is
+$$
+\frac{q(x)-q(0)}{q(p)-q(0)}
+= 1 - \left(\frac{x-73.6}{73.6}\right)^2.
+$$ {#eq-ideograph-target}
