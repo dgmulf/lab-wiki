@@ -11,11 +11,11 @@ description: >-
   work policy determines which latents the prior should predict. The play
   policy learns where to look from work trajectories, giving more weight to
   trajectories with larger prior-loss gradient norms.
-- In the initial experiment, the agent directly senses each drawn card’s label.
-  We search for hyperparameters under which liking—the probability of drawing a
-  card during play—has a downward-opening quadratic fit whose peak falls inside
-  the observed range of work exposures. A separate test asks whether BNO learns
-  the label prior in fewer fitted card draws than a work-only control.
+- In an initial card-draw experiment where the agent directly senses each card’s
+  label, liking—the probability of drawing a card during play—generally
+  increased with work exposure, but a random hyperparameter search found neither
+  the hypothesized inverted-U peak nor faster prior convergence than a work-only
+  control.
 :::
 
 ## What counts as a preference?
@@ -136,6 +136,23 @@ importance-weighted estimate. For the control, count the draws in work
 trajectories used in its prior gradient estimate. Draws used only to fit the
 play policy do not count. Give both methods the same fitted-draw budget and
 record how many fitted draws each needs to reach the prior-loss threshold.
+
+**Initial results.** In a rough first random hyperparameter search, liking was
+observed to generally increase with work exposure across every search and
+held-out run (@fig-card-exposure-liking). The hypothesized inverted-U was not
+found: none of the 96 search runs or 40 held-out preference runs produced a
+downward-opening quadratic fit with an interior peak. Faster prior convergence
+was also not found: on held-out seeds, none of the selected BNO settings reached
+the prior-loss threshold in fewer mean fitted card draws than its matched
+work-only control, even before counting BNO’s separate play-training draws.
+
+![Mean play probability (liking) by observed work exposure count for a randomly
+selected held-out run shown alongside its least-squares quadratic fit. Liking
+increases across the observed exposure range without an interior
+peak.](figures/card-exposure-liking.svg){#fig-card-exposure-liking
+fig-alt="Scatter plot of 29 exposure-group mean liking values across observed
+work exposures from 0 to 125, with an upward-opening quadratic fit rising from
+about 0.012 to 0.051 and no interior peak."}
 
 ## References
 
