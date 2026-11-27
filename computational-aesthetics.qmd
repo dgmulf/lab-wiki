@@ -11,11 +11,11 @@ description: >-
   work policy determines which latents the prior should predict. The play
   policy learns where to look from work trajectories, giving more weight to
   trajectories with larger prior-loss gradient norms.
-- In the glyph experiment, work draws control exposure, and liking is the
-  card’s play policy logit rescaled from 0 to 1 across the deck. The experiment
-  tests whether BNO can match the human ideograph liking curve across exposure
-  counts and whether it learns the prior in fewer fitted card draws than a
-  work-only control.
+- In the initial experiment, the agent directly senses each drawn card’s label.
+  We search for hyperparameters under which liking—the probability of drawing a
+  card during play—has a downward-opening quadratic fit whose peak falls inside
+  the observed range of work exposures. A separate test asks whether BNO learns
+  the label prior in fewer fitted card draws than a work-only control.
 :::
 
 ## What counts as a preference?
@@ -85,21 +85,21 @@ A separate behavioral test is whether the play policy’s predicted gaze choices
 match observed preferences. Success on the sampling test alone would not
 establish the aesthetic hypothesis.
 
-### Mere exposure: Glyphs on cards
+### Mere exposure: Card draws
 
 In a meta-analysis of human studies, @montoya2017 found that liking for visual
-stimuli rose with repetition and then fell. The glyph experiment tests two
+stimuli rose with repetition and then fell. The card experiment tests two
 hypotheses:
 
-1. **Preference.** We can fit BNO hyperparameters so that the agent’s mean
-   liking at each observed work exposure count matches the rating on the
-   [human ideograph curve](#ideograph-exposure-curve) at that count.
+1. **Preference.** For some BNO hyperparameter settings, a quadratic fitted to
+   mean liking as a function of work exposure rises and then falls within the
+   observed exposure range.
 2. **Prior convergence.** BNO will need fewer fitted card draws than the
    work-only control to reach the same mean prior-loss threshold under the
    work distribution.
 
-**Manipulating exposure.** Each card depicts a procedurally generated glyph
-with a known label. At each step the agent draws one card with replacement.
+**Manipulating exposure.** At each step the agent draws one card with
+replacement and directly senses its label.
 Work and play each use a distribution over the deck that does not depend on
 previous draws. The experimenter fixes the work distribution, assigning cards
 different draw probabilities. A card’s assigned probability controls its
@@ -110,37 +110,26 @@ work distribution also determines which cards train the play policy, the
 liking curve describes preference under this sampling schedule, not the
 effect of repetition at a fixed work probability.
 
-**Learning the labels and the prior.** The work task is to label each glyph
-from its raw image. Each work draw supplies one example in a minibatch for a
-deep visual classifier, trained by cross-entropy against the known labels.
-Only the classifier learns from that objective. The prior $R_\theta$ instead
-predicts the classifier’s output labels $z_t$, using the mean negative log
-likelihood in @eq-trajectory-loss-gradient. BNO fits the play distribution
+**Learning the prior.** The observed label is $z_t$ in
+@eq-trajectory-loss-gradient. The prior $R_\theta$ learns the distribution
+of labels drawn during work. BNO fits the play distribution
 from work trajectories weighted by their prior-loss gradient norms, then
 updates the prior from the importance-weighted mixture of work and play.
 
-**Measuring liking.** After training, let $\ell_i$ be the play policy’s logit
-for card $i$, before softmax converts logits to draw probabilities. Define
-the card’s liking score by rescaling its logit across all cards in the deck:
-$$
-L_i=\frac{\ell_i-\min_j\ell_j}{\max_j\ell_j-\min_j\ell_j}.
-$$ {#eq-glyph-liking}
-The least-liked cards score 0 and the most-liked score 1. If all logits are
-equal, the policy expresses no preference and the score is undefined.
+**Measuring liking.** A card’s liking is the probability that the trained play
+policy draws it on the next draw. Group cards by their observed work exposure
+count $x$. For each count, average the play probabilities of the cards in that
+group to obtain mean liking.
 
-**Fitting hyperparameters.** For each candidate, group cards by the number
-of times they were drawn during work. At each represented count $x$, compare
-the group’s mean liking score with the human rating $q(x)$ from
-@eq-ideograph-rating, on its published scale. The endpoints 0 and 1 apply
-to individual card scores; do not rescale the group means or the human curve.
-Choose the hyperparameters that minimize the mean squared difference across
-represented counts, weighting each count equally regardless of how many cards
-it contains. A candidate with all logits equal has no defined error.
-Report the error and plot the observed group means against the human curve
-to show where the agent’s liking rises or falls with exposure.
+**Searching for an exposure–liking curve.** For each hyperparameter setting
+with at least three distinct observed counts, fit $q(x)=ax^2+bx+c$ to the
+group means by least squares, giving each count equal weight. A setting meets
+the preference criterion if $a<0$ and the vertex $-b/(2a)$ lies strictly
+between the smallest and largest observed counts. Plot the group means
+alongside the fit to show how closely the observed preferences follow it.
 
-**Measuring convergence.** Starting from the same classifier and prior
-checkpoint, hold the classifier and work distribution fixed. A **fitted card
+**Measuring convergence.** Start BNO and the work-only control from the same
+prior checkpoint and keep the work distribution fixed. A **fitted card
 draw** is a draw in a trajectory used to estimate the prior gradient. For
 BNO, count the draws in both work and play trajectories used in the
 importance-weighted estimate. For the control, count the draws in work
@@ -152,15 +141,3 @@ record how many fitted draws each needs to reach the prior-loss threshold.
 
 ::: {#refs}
 :::
-
-## Appendix: Ideograph exposure curve {#ideograph-exposure-curve}
-
-For $x$ exposures, the ideograph row in Table 3 of @montoya2017 gives the
-following quadratic for the fitted human rating:
-$$
-q(x) = 0.60776 + 0.00368x - 0.000025x^2.
-$$ {#eq-ideograph-rating}
-
-The table reports a peak at 73.07 exposures. For fitting, we use the printed
-coefficients in @eq-ideograph-rating, which give a peak at
-$p = 0.00368/(2 \times 0.000025) = 73.6$ exposures.
